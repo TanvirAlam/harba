@@ -3,16 +3,18 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json pnpm-lock.yaml ./
+# Copy workspace files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+
+# Copy apps and packages
+COPY apps ./apps
+COPY packages ./packages
 
 # Install dependencies
 RUN npm install -g pnpm && pnpm install --frozen-lockfile
 
-# Copy source code
-COPY . .
-
 # Build the application
+WORKDIR /app/apps/web
 RUN pnpm build
 
 # Production stage
@@ -20,14 +22,19 @@ FROM node:20-alpine AS runner
 
 WORKDIR /app
 
+# Install next
+RUN npm install next@16.0.1
+
 # Copy built application
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/public ./public
+COPY --from=builder /app/apps/web/.next ./.next
+COPY --from=builder /app/apps/web/package.json ./package.json
+COPY --from=builder /app/apps/web/public ./public
 
 # Expose port
 EXPOSE 3000
+
+# Set environment
+ENV NODE_ENV=production
 
 # Start the application
 CMD ["npm", "start"]

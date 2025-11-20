@@ -1,0 +1,5 @@
+var/
+.gitignore
+.env*
+*.log
+node_modules/

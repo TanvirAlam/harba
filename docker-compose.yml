@@ -2,18 +2,17 @@ version: "3.8"
 
 services:
   db:
-    image: mysql:8.0
-    container_name: harba_mysql
+    image: postgres:15
+    container_name: harba_postgres
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: harba
-      MYSQL_USER: harba_user
-      MYSQL_PASSWORD: harba_password
+      POSTGRES_DB: harba
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: tanasd79
     ports:
-      - "3306:3306"
+      - "8001:5432"
     volumes:
-      - db_data:/var/lib/mysql
+      - db_data:/var/lib/postgresql/data
     networks:
       - harba_network
 
@@ -24,7 +23,7 @@ services:
     container_name: harba_api_php
     restart: unless-stopped
     environment:
-      DATABASE_URL: mysql://harba_user:harba_password@db:3306/harba?serverVersion=8.0
+      DATABASE_URL: postgres://postgres:tanasd79@db:5432/harba?serverVersion=15&sslmode=disable
     depends_on:
       - db
     volumes:
@@ -48,14 +47,14 @@ services:
 
   web:
     build:
-      context: ./apps/web
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/web/Dockerfile
     container_name: harba_web
     restart: unless-stopped
     ports:
       - "3000:3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8080
+      NEXT_PUBLIC_API_URL: http://nginx
     networks:
       - harba_network
 
