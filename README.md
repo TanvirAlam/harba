@@ -1,135 +1,169 @@
-# Turborepo starter
+# Full-Stack Symfony + Next.js Application
 
-This Turborepo starter is maintained by the Turborepo core team.
+A complete full-stack application with Symfony backend API and Next.js frontend, containerized with Docker.
 
-## Using this example
+## Features
 
-Run the following command:
+- **Backend**: Symfony 7.3 with JWT authentication, Doctrine ORM, MySQL database
+- **Frontend**: Next.js with React, TypeScript, and Tailwind CSS
+- **Authentication**: JWT-based API authentication with user registration/login
+- **Database**: MySQL 8.0 with Doctrine migrations
+- **Containerization**: Docker Compose setup with PHP-FPM, Nginx, MySQL, and Next.js
 
-```sh
-npx create-turbo@latest
-```
-
-## What's inside?
-
-This Turborepo includes the following packages/apps:
-
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
+## Project Structure
 
 ```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
+├── apps/
+│   ├── api-php/          # Symfony backend API
+│   └── web/              # Next.js frontend
+├── docker/
+│   └── nginx.conf        # Nginx configuration
+├── docker-compose.yml    # Docker Compose configuration
+└── README.md
 ```
 
-You can build a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+## Quick Start
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build --filter=docs
+### Prerequisites
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-```
+- Docker and Docker Compose
+- Git
 
-### Develop
+### Setup and Run
 
-To develop all apps and packages, run the following command:
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd harba
+   ```
 
-```
-cd my-turborepo
+2. **Copy environment files**
+   ```bash
+   cp apps/api-php/.env.example apps/api-php/.env
+   ```
 
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev
+3. **Generate JWT keys** (optional - keys are already generated)
+   ```bash
+   cd apps/api-php
+   php bin/console lexik:jwt:generate-keypair
+   cd ../..
+   ```
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
-```
+4. **Start all services**
+   ```bash
+   docker compose up --build
+   ```
 
-You can develop a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+The application will be available at:
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8080
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev --filter=web
+## API Documentation
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
+### Authentication Endpoints
 
-### Remote Caching
+| Method | Endpoint | Description | Request Body |
+|--------|----------|-------------|--------------|
+| POST | `/api/register` | Register new user | `{"email": "string", "password": "string", "roles": ["ROLE_USER"]}` |
+| POST | `/api/login_check` | Login and get JWT token | `{"username": "string", "password": "string"}` |
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
+### Protected Endpoints
 
-Turborepo can use a technique known as [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
+| Method | Endpoint | Description | Headers |
+|--------|----------|-------------|---------|
+| GET | `/api/profile` | Get user profile | `Authorization: Bearer <token>` |
 
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
+### Response Examples
 
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo login
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo link
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
+**Registration Success:**
+```json
+{
+  "message": "User registered successfully"
+}
 ```
 
-## Useful Links
+**Login Success:**
+```json
+{
+  "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."
+}
+```
 
-Learn more about the power of Turborepo:
+**Profile Response:**
+```json
+{
+  "email": "user@example.com",
+  "roles": ["ROLE_USER"]
+}
+```
 
-- [Tasks](https://turborepo.com/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.com/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.com/docs/reference/configuration)
-- [CLI Usage](https://turborepo.com/docs/reference/command-line-reference)
+## Development
+
+### Running without Docker
+
+**Backend:**
+```bash
+cd apps/api-php
+composer install
+php bin/console doctrine:migrations:migrate
+php bin/console server:start
+```
+
+**Frontend:**
+```bash
+cd apps/web
+pnpm install
+pnpm dev
+```
+
+### Database
+
+The application uses MySQL with Doctrine ORM. Migrations are automatically run on container startup.
+
+### Environment Variables
+
+Copy `apps/api-php/.env.example` to `apps/api-php/.env` and configure:
+
+- `DATABASE_URL`: MySQL connection string
+- `JWT_SECRET_KEY`: Path to JWT private key
+- `JWT_PUBLIC_KEY`: Path to JWT public key
+- `JWT_PASSPHRASE`: JWT key passphrase
+
+## Docker Services
+
+- **db**: MySQL 8.0 database
+- **api-php**: PHP 8.4 FPM with Symfony
+- **nginx**: Web server proxying to PHP-FPM
+- **web**: Next.js production build
+
+## Testing
+
+### API Testing with cURL
+
+**Register:**
+```bash
+curl -X POST http://localhost:8080/api/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"password123"}'
+```
+
+**Login:**
+```bash
+curl -X POST http://localhost:8080/api/login_check \
+  -H "Content-Type: application/json" \
+  -d '{"username":"test@example.com","password":"password123"}'
+```
+
+**Get Profile:**
+```bash
+curl -X GET http://localhost:8080/api/profile \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+## Technologies Used
+
+- **Backend**: Symfony 7.3, Doctrine ORM, LexikJWTAuthenticationBundle
+- **Frontend**: Next.js 16, React 19, TypeScript, Tailwind CSS
+- **Database**: MySQL 8.0
+- **Containerization**: Docker, Docker Compose
+- **Web Server**: Nginx
