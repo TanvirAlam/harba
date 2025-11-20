@@ -1,0 +1,73 @@
+name: Backend Tests
+
+on:
+  push:
+    paths:
+      - "apps/api-php/**"
+  pull_request:
+    paths:
+      - "apps/api-php/**"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: test_db
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: pdo, pdo_mysql, mbstring, xml, curl
+          tools: composer:v2
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v3
+        with:
+          path: apps/api-php/vendor
+          key: ${{ runner.os }}-php-${{ hashFiles('apps/api-php/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-
+
+      - name: Install PHP dependencies
+        run: |
+          cd apps/api-php
+          composer install --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Copy environment file
+        run: |
+          cd apps/api-php
+          cp .env.test .env
+
+      - name: Wait for MySQL
+        run: |
+          while ! mysqladmin ping -h"127.0.0.1" -P"3306" --silent; do
+            echo "Waiting for MySQL..."
+            sleep 2
+          done
+
+      - name: Create database
+        run: |
+          mysql -h127.0.0.1 -P3306 -uroot -proot -e "CREATE DATABASE IF NOT EXISTS test_db;"
+
+      - name: Run migrations
+        run: |
+          cd apps/api-php
+          php bin/console doctrine:migrations:migrate --no-interaction --env=test
+
+      - name: Run PHPUnit tests
+        run: |
+          cd apps/api-php
+          ./bin/phpunit --coverage-text --colors=never
