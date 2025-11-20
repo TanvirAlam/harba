@@ -66,8 +66,11 @@ export default function BookingPage() {
       <h1 className="text-2xl font-bold mb-4">Book an Appointment</h1>
 
       <div className="mb-4">
-        <label className="block mb-2">Select Provider:</label>
+        <label htmlFor="provider-select" className="block mb-2">
+          Select Provider:
+        </label>
         <select
+          id="provider-select"
           value={selectedProvider || ""}
           onChange={(e) => setSelectedProvider(Number(e.target.value))}
           className="border p-2 w-full"
@@ -82,8 +85,11 @@ export default function BookingPage() {
       </div>
 
       <div className="mb-4">
-        <label className="block mb-2">Select Service:</label>
+        <label htmlFor="service-select" className="block mb-2">
+          Select Service:
+        </label>
         <select
+          id="service-select"
           value={selectedService || ""}
           onChange={(e) => setSelectedService(Number(e.target.value))}
           className="border p-2 w-full"
