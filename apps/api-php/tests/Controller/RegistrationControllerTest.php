@@ -37,7 +37,7 @@ class RegistrationControllerTest extends WebTestCase
 
         $this->assertResponseStatusCodeSame(400);
         $responseData = json_decode($client->getResponse()->getContent(), true);
-        $this->assertEquals('Invalid data', $responseData['error']);
+        $this->assertEquals('email and password required', $responseData['error']);
     }
 
     public function testRegisterWithMissingPassword(): void
@@ -52,7 +52,7 @@ class RegistrationControllerTest extends WebTestCase
 
         $this->assertResponseStatusCodeSame(400);
         $responseData = json_decode($client->getResponse()->getContent(), true);
-        $this->assertEquals('Invalid data', $responseData['error']);
+        $this->assertEquals('email and password required', $responseData['error']);
     }
 
     public function testRegisterWithDefaultRoles(): void

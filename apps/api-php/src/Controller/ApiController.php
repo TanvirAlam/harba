@@ -15,9 +15,28 @@ final class ApiController extends AbstractController
     #[Route('/api/login_check', name: 'app_api_login_check', methods: ['POST'])]
     public function login(Request $request, JWTTokenManagerInterface $jwtManager, UserRepository $userRepository): JsonResponse
     {
-        $data = json_decode($request->getContent(), true);
-        if (!$data || !isset($data['username']) || !isset($data['password'])) {
-            return new JsonResponse(['message' => 'Invalid data'], 400);
+        $content = $request->getContent();
+        
+        // Check for empty body first
+        if (empty($content)) {
+            return new JsonResponse(['error' => 'Empty request body'], 400);
+        }
+        
+        $data = json_decode($content, true);
+        
+        // Check for JSON parsing errors
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return new JsonResponse([
+                'error' => 'Invalid JSON: ' . json_last_error_msg()
+            ], 400);
+        }
+        
+        if (!$data) {
+            return new JsonResponse(['error' => 'Request body must be a JSON object'], 400);
+        }
+        
+        if (!isset($data['username']) || !isset($data['password'])) {
+            return new JsonResponse(['error' => 'username and password required'], 400);
         }
         $username = $data['username'];
         $password = $data['password'];

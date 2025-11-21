@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\User;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -61,10 +62,28 @@ final class RegistrationController extends AbstractController
     #[Route('/api/register', name: 'app_api_register', methods: ['POST'])]
     public function register(Request $request, UserPasswordHasherInterface $passwordHasher, EntityManagerInterface $entityManager, ValidatorInterface $validator): JsonResponse
     {
-        $data = json_decode($request->getContent(), true);
+        $content = $request->getContent();
 
-        if (!$data || !isset($data['email']) || !isset($data['password'])) {
-            return new JsonResponse(['error' => 'Invalid data'], 400);
+        // Check for empty body first
+        if (empty($content)) {
+            return new JsonResponse(['error' => 'Empty request body'], 400);
+        }
+
+        $data = json_decode($content, true);
+
+        // Check for JSON parsing errors
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return new JsonResponse([
+                'error' => 'Invalid JSON: ' . json_last_error_msg()
+            ], 400);
+        }
+
+        if (!$data) {
+            return new JsonResponse(['error' => 'Request body must be a JSON object'], 400);
+        }
+
+        if (!isset($data['email']) || !isset($data['password'])) {
+            return new JsonResponse(['error' => 'email and password required'], 400);
         }
 
         $user = new User();
@@ -84,8 +103,17 @@ final class RegistrationController extends AbstractController
             return new JsonResponse(['errors' => $errorMessages], 400);
         }
 
-        $entityManager->persist($user);
-        $entityManager->flush();
+        try {
+            $entityManager->persist($user);
+            $entityManager->flush();
+        } catch (UniqueConstraintViolationException $e) {
+            return new JsonResponse([
+                'error' => 'Email already exists'
+            ], 400);
+        } catch (\Exception $e) {
+            // Re-throw to be handled by global exception handler
+            throw $e;
+        }
 
         return new JsonResponse(['message' => 'User registered successfully'], 201);
     }

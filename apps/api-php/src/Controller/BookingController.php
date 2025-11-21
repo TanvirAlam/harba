@@ -8,6 +8,7 @@ use App\Entity\Service;
 use App\Repository\BookingRepository;
 use App\Repository\ProviderRepository;
 use App\Repository\ServiceRepository;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -39,7 +40,25 @@ class BookingController extends AbstractController
     #[Route('/api/bookings', name: 'api_bookings_book', methods: ['POST'])]
     public function book(Request $request, EntityManagerInterface $entityManager): JsonResponse
     {
-        $data = json_decode($request->getContent(), true);
+        $content = $request->getContent();
+        
+        // Check for empty body first
+        if (empty($content)) {
+            return new JsonResponse(['error' => 'Empty request body'], 400);
+        }
+        
+        $data = json_decode($content, true);
+
+        // Check for JSON parsing errors
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return new JsonResponse([
+                'error' => 'Invalid JSON: ' . json_last_error_msg()
+            ], 400);
+        }
+
+        if (!$data) {
+            return new JsonResponse(['error' => 'Request body must be a JSON object'], 400);
+        }
 
         if (!isset($data['provider_id'], $data['service_id'], $data['datetime'])) {
             return new JsonResponse(['error' => 'provider_id, service_id, datetime required'], 400);
@@ -116,8 +135,18 @@ class BookingController extends AbstractController
         $booking->setService($service);
         $booking->setDatetime($datetime);
 
-        $entityManager->persist($booking);
-        $entityManager->flush();
+        try {
+            $entityManager->persist($booking);
+            $entityManager->flush();
+        } catch (UniqueConstraintViolationException $e) {
+            // Handle race condition where slot was booked between availability check and save
+            return new JsonResponse([
+                'error' => 'Slot already booked (race condition detected)'
+            ], 409);
+        } catch (\Exception $e) {
+            // Re-throw to be handled by global exception handler
+            throw $e;
+        }
 
         return new JsonResponse(['message' => 'Booking created'], 201);
     }
