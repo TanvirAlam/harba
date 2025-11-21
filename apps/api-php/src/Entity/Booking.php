@@ -7,6 +7,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Gedmo\Mapping\Annotation as Gedmo;
 use Gedmo\SoftDeleteable\Traits\SoftDeleteableEntity;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: BookingRepository::class)]
 #[ORM\UniqueConstraint(name: 'UNIQ_BOOKING_PROVIDER_DATETIME', fields: ['provider', 'datetime'])]
@@ -22,17 +23,25 @@ class Booking
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull(message: 'User is required')]
     private ?User $user = null;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull(message: 'Provider is required')]
     private ?Provider $provider = null;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
+    #[Assert\NotNull(message: 'Service is required')]
     private ?Service $service = null;
 
     #[ORM\Column(type: Types::DATETIME_MUTABLE)]
+    #[Assert\NotNull(message: 'Datetime is required')]
+    #[Assert\GreaterThanOrEqual(
+        value: 'today',
+        message: 'Booking date must be today or in the future'
+    )]
     private ?\DateTimeInterface $datetime = null;
 
     public function getId(): ?int
