@@ -13,7 +13,6 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "@repo/ui": "workspace:*",
     "axios": "^1.13.2",
     "next": "^16.0.1",
     "react": "^19.2.0",

@@ -13,8 +13,6 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Component\Security\Http\Attribute\IsGranted;
-
 class BookingController extends AbstractController
 {
     #[Route('/api/bookings/available-slots', name: 'api_bookings_available_slots', methods: ['GET'])]
@@ -34,7 +32,7 @@ class BookingController extends AbstractController
             return new JsonResponse(['error' => 'Invalid provider or service'], 404);
         }
 
-        $slots = $this->generateAvailableSlots($provider, $service, $bookingRepository);
+        $slots = $this->generateAvailableSlots();
         return new JsonResponse($slots);
     }
 
@@ -136,7 +134,7 @@ class BookingController extends AbstractController
         return new JsonResponse($result);
     }
 
-    private function generateAvailableSlots(Provider $provider, Service $service, BookingRepository $bookingRepository): array
+    private function generateAvailableSlots(): array
     {
         // Simple hardcoded slots
         return [
