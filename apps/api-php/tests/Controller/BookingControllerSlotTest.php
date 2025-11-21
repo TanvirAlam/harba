@@ -42,7 +42,7 @@ class BookingControllerSlotTest extends WebTestCase
 
         // Create a test user and authenticate
         $user = new User();
-        $user->setEmail('test@example.com');
+        $user->setEmail('test_' . uniqid() . '@example.com');
         $user->setPassword('hashed_password');
         $user->setRoles(['ROLE_USER']);
         $this->entityManager->persist($user);
@@ -83,8 +83,19 @@ class BookingControllerSlotTest extends WebTestCase
         $bookedSlot = $booking->getDatetime()->format('Y-m-d H:i:s');
         $this->assertNotContains($bookedSlot, $response, 'Booked slot should not be available');
 
-        // Clean up
-        $this->entityManager->remove($booking);
+        // Clean up - hard delete the booking to avoid foreign key issues
+        $bookingId = $booking->getId();
+        $this->entityManager->getConnection()->executeStatement(
+            'DELETE FROM booking WHERE id = ?',
+            [$bookingId]
+        );
+        $this->entityManager->clear();
+        
+        // Now remove other entities
+        $user = $this->entityManager->find(User::class, $user->getId());
+        $service = $this->entityManager->find(Service::class, $service->getId());
+        $provider = $this->entityManager->find(Provider::class, $provider->getId());
+        
         $this->entityManager->remove($user);
         $this->entityManager->remove($service);
         $this->entityManager->remove($provider);
@@ -107,7 +118,7 @@ class BookingControllerSlotTest extends WebTestCase
         $this->entityManager->persist($service);
 
         $user = new User();
-        $user->setEmail('test2@example.com');
+        $user->setEmail('test_' . uniqid() . '@example.com');
         $user->setPassword('hashed_password');
         $user->setRoles(['ROLE_USER']);
         $this->entityManager->persist($user);
