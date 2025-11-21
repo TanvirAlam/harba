@@ -4,6 +4,30 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../contexts/AuthContext";
 import { bookingAPI, Booking } from "../../lib/api";
+import {
+  Container,
+  Nav,
+  NavInner,
+  NavContent,
+  NavLeft,
+  NavTitle,
+  NavRight,
+  NavButton,
+  Main,
+  Content,
+  Card,
+  CardContent,
+  CardTitle,
+  EmptyMessage,
+  BookingsList,
+  BookingItem,
+  BookingInfo,
+  BookingTitle,
+  BookingDetail,
+  CancelButton,
+  LoadingContainer,
+  LoadingText,
+} from "./page.styles";
 
 export default function MyBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -45,79 +69,61 @@ export default function MyBookingsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
-      </div>
+      <LoadingContainer>
+        <LoadingText>Loading...</LoadingText>
+      </LoadingContainer>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-gray-900">
-                My Bookings
-              </h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => router.push("/dashboard")}
-                className="text-gray-600 hover:text-gray-900"
-              >
+    <Container>
+      <Nav>
+        <NavInner>
+          <NavContent>
+            <NavLeft>
+              <NavTitle>My Bookings</NavTitle>
+            </NavLeft>
+            <NavRight>
+              <NavButton onClick={() => router.push("/dashboard")}>
                 Dashboard
-              </button>
-              <button
-                onClick={() => router.push("/booking")}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-              >
+              </NavButton>
+              <NavButton onClick={() => router.push("/booking")} $primary>
                 Book New
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
+              </NavButton>
+            </NavRight>
+          </NavContent>
+        </NavInner>
+      </Nav>
 
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="px-4 py-5 sm:p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">
-                Your Bookings
-              </h2>
+      <Main>
+        <Content>
+          <Card>
+            <CardContent>
+              <CardTitle>Your Bookings</CardTitle>
               {bookings.length === 0 ? (
-                <p className="text-gray-500">No bookings found.</p>
+                <EmptyMessage>No bookings found.</EmptyMessage>
               ) : (
-                <div className="space-y-4">
+                <BookingsList>
                   {bookings.map((booking) => (
-                    <div
-                      key={booking.id}
-                      className="border rounded-lg p-4 flex justify-between items-center"
-                    >
-                      <div>
-                        <p className="font-medium">{booking.service}</p>
-                        <p className="text-sm text-gray-600">
-                          with {booking.provider}
-                        </p>
-                        <p className="text-sm text-gray-500">
+                    <BookingItem key={booking.id}>
+                      <BookingInfo>
+                        <BookingTitle>{booking.service}</BookingTitle>
+                        <BookingDetail>with {booking.provider}</BookingDetail>
+                        <BookingDetail>
                           {new Date(booking.datetime).toLocaleString()}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => cancelBooking(booking.id)}
-                        className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-                      >
+                        </BookingDetail>
+                      </BookingInfo>
+                      <CancelButton onClick={() => cancelBooking(booking.id)}>
                         Cancel
-                      </button>
-                    </div>
+                      </CancelButton>
+                    </BookingItem>
                   ))}
-                </div>
+                </BookingsList>
               )}
-            </div>
-          </div>
-        </div>
-      </main>
-    </div>
+            </CardContent>
+          </Card>
+        </Content>
+      </Main>
+    </Container>
   );
 }

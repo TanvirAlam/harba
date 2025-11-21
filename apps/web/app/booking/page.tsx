@@ -3,6 +3,26 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { bookingAPI, Service, Provider } from "../../lib/api";
+import {
+  Container,
+  Nav,
+  NavInner,
+  NavContent,
+  NavLeft,
+  NavTitle,
+  NavRight,
+  NavButton,
+  Main,
+  Content,
+  FormGroup,
+  Label,
+  Select,
+  Button,
+  SlotsContainer,
+  SlotsTitle,
+  SlotsGrid,
+  SlotButton,
+} from "./page.styles";
 
 export default function BookingPage() {
   const [services, setServices] = useState<Service[]>([]);
@@ -62,38 +82,30 @@ export default function BookingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-gray-900">
-                Book an Appointment
-              </h1>
-            </div>
-            <div className="flex items-center">
-              <button
-                onClick={() => router.push("/dashboard")}
-                className="text-gray-600 hover:text-gray-900"
-              >
+    <Container>
+      <Nav>
+        <NavInner>
+          <NavContent>
+            <NavLeft>
+              <NavTitle>Book an Appointment</NavTitle>
+            </NavLeft>
+            <NavRight>
+              <NavButton onClick={() => router.push("/dashboard")}>
                 Back to Dashboard
-              </button>
-            </div>
-          </div>
-        </div>
-      </nav>
+              </NavButton>
+            </NavRight>
+          </NavContent>
+        </NavInner>
+      </Nav>
 
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="mb-4">
-            <label htmlFor="provider-select" className="block mb-2">
-              Select Provider:
-            </label>
-            <select
+      <Main>
+        <Content>
+          <FormGroup>
+            <Label htmlFor="provider-select">Select Provider:</Label>
+            <Select
               id="provider-select"
               value={selectedProvider || ""}
               onChange={(e) => setSelectedProvider(Number(e.target.value))}
-              className="border p-2 w-full"
             >
               <option value="">Choose a provider</option>
               {providers.map((provider) => (
@@ -101,18 +113,15 @@ export default function BookingPage() {
                   {provider.name}
                 </option>
               ))}
-            </select>
-          </div>
+            </Select>
+          </FormGroup>
 
-          <div className="mb-4">
-            <label htmlFor="service-select" className="block mb-2">
-              Select Service:
-            </label>
-            <select
+          <FormGroup>
+            <Label htmlFor="service-select">Select Service:</Label>
+            <Select
               id="service-select"
               value={selectedService || ""}
               onChange={(e) => setSelectedService(Number(e.target.value))}
-              className="border p-2 w-full"
             >
               <option value="">Choose a service</option>
               {services.map((service) => (
@@ -120,33 +129,32 @@ export default function BookingPage() {
                   {service.name} ({service.duration} min)
                 </option>
               ))}
-            </select>
-          </div>
+            </Select>
+          </FormGroup>
 
-          <button
+          <Button
             onClick={loadSlots}
             disabled={!selectedProvider || !selectedService || loading}
-            className="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50"
+            $disabled={!selectedProvider || !selectedService || loading}
           >
             {loading ? "Loading..." : "Show Available Slots"}
-          </button>
+          </Button>
 
-          <div className="mt-4">
-            <h2 className="text-xl font-semibold mb-2">Available Slots</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <SlotsContainer>
+            <SlotsTitle>Available Slots</SlotsTitle>
+            <SlotsGrid>
               {availableSlots.map((slot) => (
-                <button
+                <SlotButton
                   key={slot}
                   onClick={() => bookSlot(slot)}
-                  className="border p-2 rounded hover:bg-gray-100"
                 >
                   {new Date(slot).toLocaleString()}
-                </button>
+                </SlotButton>
               ))}
-            </div>
-          </div>
-        </div>
-      </main>
-    </div>
+            </SlotsGrid>
+          </SlotsContainer>
+        </Content>
+      </Main>
+    </Container>
   );
 }
