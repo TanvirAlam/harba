@@ -32,7 +32,7 @@ class BookingController extends AbstractController
             return new JsonResponse(['error' => 'Invalid provider or service'], 404);
         }
 
-        $slots = $this->generateAvailableSlots();
+        $slots = $this->generateAvailableSlots($provider, $service, $bookingRepository);
         return new JsonResponse($slots);
     }
 
@@ -134,14 +134,77 @@ class BookingController extends AbstractController
         return new JsonResponse($result);
     }
 
-    private function generateAvailableSlots(): array
+    private function generateAvailableSlots(Provider $provider, Service $service, BookingRepository $bookingRepository): array
     {
-        // Simple hardcoded slots
-        return [
-            '2025-11-22 10:00:00',
-            '2025-11-22 14:00:00',
-            '2025-11-23 10:00:00',
-            '2025-11-23 14:00:00',
-        ];
+        $slots = [];
+        $workingHours = $provider->getWorkingHours();
+        $serviceDuration = $service->getDuration();
+        
+        // Generate slots for the next 30 days
+        $startDate = new \DateTime('today');
+        $endDate = (new \DateTime('today'))->modify('+30 days');
+        
+        // Get all existing bookings for this provider in the date range
+        $existingBookings = $bookingRepository->createQueryBuilder('b')
+            ->where('b.provider = :provider')
+            ->andWhere('b.datetime >= :startDate')
+            ->andWhere('b.datetime <= :endDate')
+            ->setParameter('provider', $provider)
+            ->setParameter('startDate', $startDate)
+            ->setParameter('endDate', $endDate)
+            ->getQuery()
+            ->getResult();
+        
+        // Create a set of booked datetimes for quick lookup
+        $bookedSlots = [];
+        foreach ($existingBookings as $booking) {
+            $bookedSlots[$booking->getDatetime()->format('Y-m-d H:i:s')] = true;
+        }
+        
+        // Iterate through each day in the range
+        $currentDate = clone $startDate;
+        while ($currentDate <= $endDate) {
+            $dayOfWeek = $currentDate->format('l'); // Monday, Tuesday, etc.
+            
+            // Check if provider works on this day
+            if (isset($workingHours[$dayOfWeek]) && !empty($workingHours[$dayOfWeek])) {
+                $hours = $workingHours[$dayOfWeek];
+                
+                // Parse working hours (e.g., "09:00-17:00")
+                if (preg_match('/^(\d{2}:\d{2})-(\d{2}:\d{2})$/', $hours, $matches)) {
+                    $startTime = $matches[1];
+                    $endTime = $matches[2];
+                    
+                    // Create datetime objects for this day's working hours
+                    $slotTime = \DateTime::createFromFormat('Y-m-d H:i', $currentDate->format('Y-m-d') . ' ' . $startTime);
+                    $dayEndTime = \DateTime::createFromFormat('Y-m-d H:i', $currentDate->format('Y-m-d') . ' ' . $endTime);
+                    
+                    // Generate 30-minute slots
+                    while ($slotTime < $dayEndTime) {
+                        // Check if slot has enough time for the service
+                        $slotEndTime = clone $slotTime;
+                        $slotEndTime->modify("+{$serviceDuration} minutes");
+                        
+                        // Only add slot if service fits within working hours
+                        if ($slotEndTime <= $dayEndTime) {
+                            $slotString = $slotTime->format('Y-m-d H:i:s');
+                            
+                            // Only add if not already booked
+                            if (!isset($bookedSlots[$slotString])) {
+                                $slots[] = $slotString;
+                            }
+                        }
+                        
+                        // Move to next 30-minute slot
+                        $slotTime->modify('+30 minutes');
+                    }
+                }
+            }
+            
+            // Move to next day
+            $currentDate->modify('+1 day');
+        }
+        
+        return $slots;
     }
 }
