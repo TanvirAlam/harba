@@ -85,10 +85,10 @@ export default function MyBookingsPage() {
             </NavLeft>
             <NavRight>
               <NavButton onClick={() => router.push("/dashboard")}>
-                Dashboard
+                <span>← Dashboard</span>
               </NavButton>
-              <NavButton onClick={() => router.push("/booking")} $primary>
-                Book New
+              <NavButton onClick={() => router.push("/booking")}>
+                <span>➕ Book New</span>
               </NavButton>
             </NavRight>
           </NavContent>

@@ -91,7 +91,7 @@ export default function BookingPage() {
             </NavLeft>
             <NavRight>
               <NavButton onClick={() => router.push("/dashboard")}>
-                Back to Dashboard
+                <span>← Back to Dashboard</span>
               </NavButton>
             </NavRight>
           </NavContent>

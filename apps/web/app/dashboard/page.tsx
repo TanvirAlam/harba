@@ -88,10 +88,10 @@ export default function DashboardPage() {
             </NavLeft>
             <NavRight>
               <NavButton onClick={() => router.push("/booking")}>
-                Book Appointment
+                <span>📅 Book Appointment</span>
               </NavButton>
               <NavButton onClick={() => router.push("/my-bookings")}>
-                My Bookings
+                <span>📋 My Bookings</span>
               </NavButton>
               <LogoutButton onClick={logout}>Logout</LogoutButton>
             </NavRight>

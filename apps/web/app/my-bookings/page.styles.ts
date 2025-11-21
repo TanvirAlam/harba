@@ -48,17 +48,45 @@ export const NavRight = styled.div`
 `;
 
 export const NavButton = styled.button<{ $primary?: boolean }>`
-  color: ${props => props.$primary ? "white" : "#4b5563"};
-  background: ${props => props.$primary ? "#2563eb" : "transparent"};
-  padding: ${props => props.$primary ? "0.5rem 1rem" : "0"};
-  border-radius: ${props => props.$primary ? "0.375rem" : "0"};
+  position: relative;
+  padding: 0.625rem 1.5rem;
   font-size: 0.875rem;
-  font-weight: ${props => props.$primary ? "500" : "normal"};
-  transition: all 0.2s;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 0.75rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 6px -1px rgba(102, 126, 234, 0.3), 0 2px 4px -1px rgba(102, 126, 234, 0.2);
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
 
   &:hover {
-    color: ${props => props.$primary ? "white" : "#111827"};
-    background: ${props => props.$primary ? "#1d4ed8" : "transparent"};
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(102, 126, 234, 0.4), 0 4px 6px -2px rgba(102, 126, 234, 0.3);
+
+    &::before {
+      opacity: 1;
+    }
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  span {
+    position: relative;
+    z-index: 1;
   }
 `;
 
