@@ -61,6 +61,45 @@ class BookingController extends AbstractController
             ], 400);
         }
 
+        // Validate booking is within provider's working hours
+        $dayOfWeek = $datetime->format('l');
+        $workingHours = $provider->getWorkingHours();
+
+        if (!isset($workingHours[$dayOfWeek]) || empty($workingHours[$dayOfWeek])) {
+            return new JsonResponse([
+                'error' => 'Provider does not work on ' . $dayOfWeek
+            ], 400);
+        }
+
+        // Parse working hours and validate booking time
+        if (preg_match('/^(\d{2}:\d{2})-(\d{2}:\d{2})$/', $workingHours[$dayOfWeek], $matches)) {
+            $startTime = \DateTime::createFromFormat('Y-m-d H:i', 
+                                                    $datetime->format('Y-m-d') . ' ' . $matches[1]);
+            $endTime = \DateTime::createFromFormat('Y-m-d H:i', 
+                                                  $datetime->format('Y-m-d') . ' ' . $matches[2]);
+            
+            // Check if booking time is within working hours
+            if ($datetime < $startTime || $datetime >= $endTime) {
+                return new JsonResponse([
+                    'error' => 'Booking time is outside provider working hours (' . $matches[1] . '-' . $matches[2] . ')'
+                ], 400);
+            }
+            
+            // Check if service duration fits within working hours
+            $serviceEndTime = clone $datetime;
+            $serviceEndTime->modify("+{$service->getDuration()} minutes");
+            
+            if ($serviceEndTime > $endTime) {
+                return new JsonResponse([
+                    'error' => 'Service duration extends beyond provider closing time'
+                ], 400);
+            }
+        } else {
+            return new JsonResponse([
+                'error' => 'Invalid working hours format for provider'
+            ], 400);
+        }
+
         // Check if slot is available
         $existing = $entityManager->getRepository(Booking::class)->findOneBy([
             'provider' => $provider,
