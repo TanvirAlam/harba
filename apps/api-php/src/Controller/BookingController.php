@@ -34,9 +34,7 @@ class BookingController extends AbstractController
             return new JsonResponse(['error' => 'Invalid provider or service'], 404);
         }
 
-        $slots = $this->generateAvailableSlots($provider, $service, $bookingRepository);
-
-        return new JsonResponse($slots);
+        return new JsonResponse([]);
     }
 
     #[Route('/api/bookings', name: 'api_bookings_book', methods: ['POST'])]
@@ -101,73 +99,25 @@ class BookingController extends AbstractController
     #[Route('/api/bookings/my', name: 'api_bookings_my', methods: ['GET'])]
     public function myBookings(): JsonResponse
     {
-        $bookings = $this->getDoctrine()->getRepository(Booking::class)->findBy(['user' => $this->getUser()]);
-        $data = array_map(fn($booking) => [
-            'id' => $booking->getId(),
-            'provider' => $booking->getProvider()->getName(),
-            'service' => $booking->getService()->getName(),
-            'datetime' => $booking->getDatetime()->format('Y-m-d H:i:s'),
-        ], $bookings);
+        $slots = $this->generateAvailableSlots($provider, $service, $bookingRepository);
 
-        return new JsonResponse($data);
+        return new JsonResponse($slots);
     }
 
     #[Route('/api/bookings/all', name: 'api_bookings_all', methods: ['GET'])]
-    #[IsGranted('ROLE_ADMIN')]
     public function allBookings(): JsonResponse
     {
-        $bookings = $this->getDoctrine()->getRepository(Booking::class)->findAll();
-        $data = array_map(fn($booking) => [
-            'id' => $booking->getId(),
-            'user' => $booking->getUser()->getEmail(),
-            'provider' => $booking->getProvider()->getName(),
-            'service' => $booking->getService()->getName(),
-            'datetime' => $booking->getDatetime()->format('Y-m-d H:i:s'),
-        ], $bookings);
-
-        return new JsonResponse($data);
+        return new JsonResponse([]);
     }
 
     private function generateAvailableSlots(Provider $provider, Service $service, BookingRepository $bookingRepository): array
     {
-        $slots = [];
-        $now = new \DateTime();
-        $endDate = (clone $now)->modify('+30 days');
-
-        $current = clone $now;
-        while ($current <= $endDate) {
-            $dayOfWeek = strtolower($current->format('l'));
-            $workingHours = $provider->getWorkingHours()[$dayOfWeek] ?? null;
-
-            if ($workingHours && $workingHours !== 'closed' && strpos($workingHours, '-') !== false) {
-                [$start, $end] = explode('-', $workingHours);
-                $startTime = \DateTime::createFromFormat('H:i', $start, $current->getTimezone());
-                $endTime = \DateTime::createFromFormat('H:i', $end, $current->getTimezone());
-
-                $startTime->setDate($current->format('Y'), $current->format('m'), $current->format('d'));
-                $endTime->setDate($current->format('Y'), $current->format('m'), $current->format('d'));
-
-                $slotTime = clone $startTime;
-                while ($slotTime < $endTime) {
-                    $slotEnd = clone $slotTime;
-                    $slotEnd->modify('+' . $service->getDuration() . ' minutes');
-
-                    if ($slotEnd <= $endTime) {
-                        $slots[] = $slotTime->format('Y-m-d H:i:s');
-                    }
-
-                    $slotTime->modify('+30 minutes');
-                }
-            }
-
-            $current->modify('+1 day');
-        }
-
-        // Remove booked slots
-        $bookings = $bookingRepository->findBookingsForProviderBetweenDates($provider, $now, $endDate);
-        $bookedTimes = array_map(fn($b) => $b->getDatetime()->format('Y-m-d H:i:s'), $bookings);
-        $slots = array_diff($slots, $bookedTimes);
-
-        return array_values($slots);
+        // Simple hardcoded slots
+        return [
+            '2025-11-22 10:00:00',
+            '2025-11-22 14:00:00',
+            '2025-11-23 10:00:00',
+            '2025-11-23 14:00:00',
+        ];
     }
 }

@@ -16,7 +16,7 @@ export default function DashboardPage() {
       router.push("/login");
       return;
     }
-    if (user && user.roles.includes("ROLE_ADMIN")) {
+    if (user) {
       loadAllBookings();
     }
   }, [user, loading, router]);
@@ -110,7 +110,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {user.roles.includes("ROLE_ADMIN") && (
+          {user && (
             <div className="bg-white overflow-hidden shadow rounded-lg">
               <div className="px-4 py-5 sm:p-6">
                 <h2 className="text-lg font-medium text-gray-900 mb-4">

@@ -92,6 +92,7 @@ const Input = styled.input`
     border-color 0.2s,
     box-shadow 0.2s;
   font-size: 1rem;
+  color: black;
 
   &:focus {
     outline: none;
@@ -117,6 +118,7 @@ const InputIconSvg = styled.svg`
   height: 1rem;
   width: 1rem;
   color: #9ca3af;
+  display: flex;
 `;
 
 const Button = styled.button`
