@@ -52,7 +52,14 @@ class BookingController extends AbstractController
             return new JsonResponse(['error' => 'Invalid provider or service'], 404);
         }
 
-        $datetime = new \DateTime($data['datetime']);
+        // Parse and validate datetime
+        try {
+            $datetime = new \DateTime($data['datetime']);
+        } catch (\Exception $e) {
+            return new JsonResponse([
+                'error' => 'Invalid datetime format. Expected format: YYYY-MM-DD HH:MM:SS'
+            ], 400);
+        }
 
         // Check if slot is available
         $existing = $entityManager->getRepository(Booking::class)->findOneBy([
