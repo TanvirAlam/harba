@@ -1,4 +1,24 @@
 @import "tailwindcss";
+@font-face {
+  font-family: "Geist Sans";
+  src: url("./fonts/GeistVF.woff") format("woff");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: url("./fonts/GeistMonoVF.woff") format("woff");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@layer theme {
+  :root {
+    --tw-content:
+      "./app/**/*.{js,ts,jsx,tsx}", "./contexts/**/*.{js,ts,jsx,tsx}";
+  }
+}
 
 :root {
   --background: #ffffff;
@@ -21,6 +41,21 @@ body {
 body {
   color: var(--foreground);
   background: var(--background);
+  font-family:
+    "Geist Sans",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    "Roboto",
+    "Oxygen",
+    "Ubuntu",
+    "Cantarell",
+    "Fira Sans",
+    "Droid Sans",
+    "Helvetica Neue",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 * {
