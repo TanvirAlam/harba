@@ -31,4 +31,16 @@ class BookingRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    public function findBookingsForProviderBetweenDates(Provider $provider, \DateTimeInterface $startDate, \DateTimeInterface $endDate): array
+    {
+        return $this->createQueryBuilder('b')
+            ->andWhere('b.provider = :provider')
+            ->andWhere('b.datetime BETWEEN :start AND :end')
+            ->setParameter('provider', $provider)
+            ->setParameter('start', $startDate)
+            ->setParameter('end', $endDate)
+            ->getQuery()
+            ->getResult();
+    }
 }

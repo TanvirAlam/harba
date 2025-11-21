@@ -139,7 +139,7 @@ class BookingController extends AbstractController
             $dayOfWeek = strtolower($current->format('l'));
             $workingHours = $provider->getWorkingHours()[$dayOfWeek] ?? null;
 
-            if ($workingHours) {
+            if ($workingHours && $workingHours !== 'closed' && strpos($workingHours, '-') !== false) {
                 [$start, $end] = explode('-', $workingHours);
                 $startTime = \DateTime::createFromFormat('H:i', $start, $current->getTimezone());
                 $endTime = \DateTime::createFromFormat('H:i', $end, $current->getTimezone());
@@ -164,7 +164,7 @@ class BookingController extends AbstractController
         }
 
         // Remove booked slots
-        $bookings = $bookingRepository->findBookingsForProviderAndDate($provider, $now);
+        $bookings = $bookingRepository->findBookingsForProviderBetweenDates($provider, $now, $endDate);
         $bookedTimes = array_map(fn($b) => $b->getDatetime()->format('Y-m-d H:i:s'), $bookings);
         $slots = array_diff($slots, $bookedTimes);
 

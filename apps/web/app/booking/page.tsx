@@ -54,7 +54,7 @@ export default function BookingPage() {
         datetime,
       });
       alert("Booking successful!");
-      loadSlots(); // Refresh slots
+      router.push("/my-bookings"); // Redirect to my bookings
     } catch (error) {
       console.error("Failed to book", error);
       alert("Booking failed");
