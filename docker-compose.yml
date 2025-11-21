@@ -6,15 +6,20 @@ services:
     container_name: harba_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: harba
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: tanasd79
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "8001:5432"
+      - "${POSTGRES_PORT:-8001}:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
     networks:
       - harba_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   api-php:
     build:
@@ -23,27 +28,40 @@ services:
     container_name: harba_api_php
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgres://postgres:tanasd79@db:5432/harba?serverVersion=15&sslmode=disable
+      DATABASE_URL: ${DATABASE_URL}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     volumes:
       - ./apps/api-php:/var/www
     networks:
       - harba_network
+    healthcheck:
+      test: ["CMD-SHELL", "php-fpm-healthcheck || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   nginx:
     image: nginx:alpine
     container_name: harba_nginx
     restart: unless-stopped
     ports:
-      - "8080:80"
+      - "${API_PORT:-8080}:80"
     volumes:
       - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf
       - ./apps/api-php:/var/www
     depends_on:
-      - api-php
+      api-php:
+        condition: service_healthy
     networks:
       - harba_network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/api"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   web:
     build:
@@ -52,11 +70,17 @@ services:
     container_name: harba_web
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "${WEB_PORT:-3000}:3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8080
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
     networks:
       - harba_network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
 volumes:
   db_data:
