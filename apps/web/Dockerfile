@@ -15,6 +15,7 @@ RUN npm install -g pnpm && pnpm install --frozen-lockfile
 
 # Build the application
 WORKDIR /app/apps/web
+ENV NEXT_TURBO_FORCE=false
 RUN pnpm build
 
 # Production stage
@@ -37,4 +38,4 @@ EXPOSE 3000
 ENV NODE_ENV=production
 
 # Start the application
-CMD ["npm", "start"]
+CMD ["/app/node_modules/.bin/next", "start"]
