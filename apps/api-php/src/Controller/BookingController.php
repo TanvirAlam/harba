@@ -18,7 +18,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 class BookingController extends AbstractController
 {
     #[Route('/api/bookings/available-slots', name: 'api_bookings_available_slots', methods: ['GET'])]
-    public function availableSlots(Request $request, ProviderRepository $providerRepository, BookingRepository $bookingRepository): JsonResponse
+    public function availableSlots(Request $request, ProviderRepository $providerRepository, ServiceRepository $serviceRepository, BookingRepository $bookingRepository): JsonResponse
     {
         $providerId = $request->query->get('provider_id');
         $serviceId = $request->query->get('service_id');
@@ -28,13 +28,14 @@ class BookingController extends AbstractController
         }
 
         $provider = $providerRepository->find($providerId);
-        $service = $this->getDoctrine()->getRepository(Service::class)->find($serviceId);
+        $service = $serviceRepository->find($serviceId);
 
         if (!$provider || !$service) {
             return new JsonResponse(['error' => 'Invalid provider or service'], 404);
         }
 
-        return new JsonResponse([]);
+        $slots = $this->generateAvailableSlots($provider, $service, $bookingRepository);
+        return new JsonResponse($slots);
     }
 
     #[Route('/api/bookings', name: 'api_bookings_book', methods: ['POST'])]
@@ -97,17 +98,42 @@ class BookingController extends AbstractController
     }
 
     #[Route('/api/bookings/my', name: 'api_bookings_my', methods: ['GET'])]
-    public function myBookings(): JsonResponse
+    public function myBookings(EntityManagerInterface $entityManager): JsonResponse
     {
-        $slots = $this->generateAvailableSlots($provider, $service, $bookingRepository);
+        $user = $this->getUser();
+        $bookings = $entityManager->getRepository(Booking::class)->findBy(['user' => $user]);
 
-        return new JsonResponse($slots);
+        $result = [];
+        foreach ($bookings as $booking) {
+            $result[] = [
+                'id' => $booking->getId(),
+                'provider' => $booking->getProvider()->getName(),
+                'service' => $booking->getService()->getName(),
+                'datetime' => $booking->getDatetime()->format('Y-m-d H:i:s'),
+                'user' => $booking->getUser()->getEmail(),
+            ];
+        }
+
+        return new JsonResponse($result);
     }
 
     #[Route('/api/bookings/all', name: 'api_bookings_all', methods: ['GET'])]
-    public function allBookings(): JsonResponse
+    public function allBookings(EntityManagerInterface $entityManager): JsonResponse
     {
-        return new JsonResponse([]);
+        $bookings = $entityManager->getRepository(Booking::class)->findAll();
+
+        $result = [];
+        foreach ($bookings as $booking) {
+            $result[] = [
+                'id' => $booking->getId(),
+                'provider' => $booking->getProvider()->getName(),
+                'service' => $booking->getService()->getName(),
+                'datetime' => $booking->getDatetime()->format('Y-m-d H:i:s'),
+                'user' => $booking->getUser()->getEmail(),
+            ];
+        }
+
+        return new JsonResponse($result);
     }
 
     private function generateAvailableSlots(Provider $provider, Service $service, BookingRepository $bookingRepository): array

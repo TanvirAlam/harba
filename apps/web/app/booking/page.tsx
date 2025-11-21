@@ -141,14 +141,23 @@ export default function BookingPage() {
           </Button>
 
           <SlotsContainer>
-            <SlotsTitle>Available Slots</SlotsTitle>
+            <SlotsTitle>
+              📅 Available Slots
+            </SlotsTitle>
             <SlotsGrid>
               {availableSlots.map((slot) => (
                 <SlotButton
                   key={slot}
                   onClick={() => bookSlot(slot)}
                 >
-                  {new Date(slot).toLocaleString()}
+                  {new Date(slot).toLocaleString('en-US', {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                  })}
                 </SlotButton>
               ))}
             </SlotsGrid>

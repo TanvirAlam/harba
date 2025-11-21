@@ -159,28 +159,58 @@ export const SlotsContainer = styled.div`
 export const SlotsTitle = styled.h2`
   font-size: 1.25rem;
   font-weight: 600;
-  margin-bottom: 0.5rem;
+  margin-bottom: 1rem;
   color: #111827;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 `;
 
 export const SlotsGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr;
-  gap: 0.5rem;
+  gap: 1rem;
 
-  @media (min-width: 768px) {
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (min-width: 1024px) {
     grid-template-columns: repeat(3, 1fr);
   }
 `;
 
 export const SlotButton = styled.button`
-  border: 1px solid #d1d5db;
-  padding: 0.5rem;
-  border-radius: 0.375rem;
-  background: white;
-  transition: background-color 0.2s;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #374151;
+  background: linear-gradient(135deg, #ffffff 0%, #f9fafb 100%);
+  border: 2px solid #e5e7eb;
+  border-radius: 0.75rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+
+  &::before {
+    content: '🕒';
+    font-size: 1.25rem;
+  }
 
   &:hover {
-    background: #f3f4f6;
+    color: #667eea;
+    background: linear-gradient(135deg, #f0f4ff 0%, #e9efff 100%);
+    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 12px rgba(102, 126, 234, 0.15);
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 `;
