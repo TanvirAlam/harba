@@ -8,7 +8,10 @@ A complete full-stack application with Symfony backend API and Next.js frontend,
     - 'composer create-project symfony/skeleton apps/api-php'
     - 'npx create-next-app@latest apps/web'
 
-2. ChatGPT - Documentation and formating and verification
+2. ChatGPT:
+    - Documentation
+    - Formating
+    - Seed data: 'users', 'providers', 'services' and 'slots'
 
 2. Lovable - Simple design just took the HTML and CSS
 
@@ -19,7 +22,7 @@ A complete full-stack application with Symfony backend API and Next.js frontend,
  - phpunit setup
  - code verification
  - seperation of concern
- 
+
 4. Base 44: 
   - Architecture verification 
   - Looked for bugs
