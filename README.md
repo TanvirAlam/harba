@@ -2,6 +2,31 @@
 
 A complete full-stack application with Symfony backend API and Next.js frontend, containerized with Docker.
 
+#### AI TOOLS USED
+```
+1. My OWN architectral setup using turborepo
+    - 'composer create-project symfony/skeleton apps/api-php'
+    - 'npx create-next-app@latest apps/web'
+
+2. ChatGPT - Documentation and formating and verification
+
+2. Lovable - Simple design just took the HTML and CSS
+
+3. Kilo Code:
+ - Latest Package installtion
+ - Docker setup
+ - github action setup
+ - phpunit setup
+ - code verification
+ - seperation of concern
+ 
+4. Base 44: 
+  - Architecture verification 
+  - Looked for bugs
+  - Further improvments
+  - Security check
+```
+
 ## Features
 
 - **Backend**: Symfony 7.3 with JWT authentication, Doctrine ORM, PostgreSQL database
