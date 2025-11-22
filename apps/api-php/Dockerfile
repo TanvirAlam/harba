@@ -40,9 +40,10 @@ COPY . .
 # Copy existing application directory permissions
 COPY --chown=www-data:www-data . .
 
-# Change current user to www-data
-USER www-data
+# Copy entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Expose port 9000 and start php-fpm server
 EXPOSE 9000
-CMD ["php-fpm"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]

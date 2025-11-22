@@ -36,6 +36,11 @@ class AppFixtures extends Fixture
         $facial->setDuration(45);
         $manager->persist($facial);
 
+        $consultation = new Service();
+        $consultation->setName('Consultation');
+        $consultation->setDuration(30);
+        $manager->persist($consultation);
+
         // Create providers
         $john = new Provider();
         $john->setName('John Doe');
@@ -63,6 +68,19 @@ class AppFixtures extends Fixture
         ]);
         $manager->persist($jane);
 
+        $alex = new Provider();
+        $alex->setName('Alex Johnson');
+        $alex->setWorkingHours([
+            'monday' => '08:00-16:00',
+            'tuesday' => '08:00-16:00',
+            'wednesday' => '08:00-16:00',
+            'thursday' => '08:00-16:00',
+            'friday' => '08:00-16:00',
+            'saturday' => '09:00-15:00',
+            'sunday' => '09:00-13:00'
+        ]);
+        $manager->persist($alex);
+
         // Create users
         $admin = new User();
         $admin->setEmail('admin@example.com');
@@ -72,7 +90,7 @@ class AppFixtures extends Fixture
 
         $user = new User();
         $user->setEmail('user@example.com');
-        $user->setRoles(['ROLE_USER']);
+        $user->setRoles([]); // Normal user, will automatically get ROLE_USER
         $user->setPassword($this->passwordHasher->hashPassword($user, 'user123'));
         $manager->persist($user);
 
