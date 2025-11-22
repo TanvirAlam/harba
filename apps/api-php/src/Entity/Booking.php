@@ -10,7 +10,7 @@ use Gedmo\SoftDeleteable\Traits\SoftDeleteableEntity;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: BookingRepository::class)]
-#[ORM\UniqueConstraint(name: 'UNIQ_BOOKING_PROVIDER_DATETIME', fields: ['provider', 'datetime'])]
+#[ORM\Index(name: 'IDX_BOOKING_PROVIDER_DATETIME', columns: ['provider_id', 'datetime'])]
 #[Gedmo\SoftDeleteable(fieldName: 'deletedAt', timeAware: false, hardDelete: false)]
 class Booking
 {

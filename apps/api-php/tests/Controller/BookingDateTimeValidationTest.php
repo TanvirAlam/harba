@@ -31,7 +31,7 @@ class BookingDateTimeValidationTest extends WebTestCase
         // Create test provider
         $provider = new Provider();
         $provider->setName('Test Provider');
-        $provider->setWorkingHours(['Monday' => '09:00-17:00']);
+        $provider->setWorkingHours(['monday' => '09:00-17:00']);
         $this->entityManager->persist($provider);
 
         // Create test service
@@ -84,7 +84,7 @@ class BookingDateTimeValidationTest extends WebTestCase
         // Create test provider
         $provider = new Provider();
         $provider->setName('Test Provider Valid');
-        $provider->setWorkingHours(['Monday' => '09:00-17:00']);
+        $provider->setWorkingHours(['monday' => '09:00-17:00']);
         $this->entityManager->persist($provider);
 
         // Create test service

@@ -26,11 +26,11 @@ class BookingControllerSlotTest extends WebTestCase
         $provider = new Provider();
         $provider->setName('Test Provider');
         $provider->setWorkingHours([
-            'Monday' => '09:00-17:00',
-            'Tuesday' => '09:00-17:00',
-            'Wednesday' => '09:00-17:00',
-            'Thursday' => '09:00-17:00',
-            'Friday' => '09:00-17:00',
+            'monday' => '09:00-17:00',
+            'tuesday' => '09:00-17:00',
+            'wednesday' => '09:00-17:00',
+            'thursday' => '09:00-17:00',
+            'friday' => '09:00-17:00',
         ]);
         $this->entityManager->persist($provider);
 
@@ -108,7 +108,7 @@ class BookingControllerSlotTest extends WebTestCase
         $provider = new Provider();
         $provider->setName('Limited Provider');
         $provider->setWorkingHours([
-            'Monday' => '10:00-12:00',
+            'monday' => '10:00-12:00',
         ]);
         $this->entityManager->persist($provider);
 

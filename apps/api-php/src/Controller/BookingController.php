@@ -119,13 +119,19 @@ class BookingController extends AbstractController
             ], 400);
         }
 
-        // Check if slot is available
-        $existing = $entityManager->getRepository(Booking::class)->findOneBy([
-            'provider' => $provider,
-            'datetime' => $datetime,
-        ]);
+        // Check if slot is available (only check for confirmed bookings)
+        $existingBooking = $entityManager->getRepository(Booking::class)
+            ->createQueryBuilder('b')
+            ->where('b.provider = :provider')
+            ->andWhere('b.datetime = :datetime')
+            ->andWhere('b.status = :status')
+            ->setParameter('provider', $provider)
+            ->setParameter('datetime', $datetime)
+            ->setParameter('status', 'confirmed')
+            ->getQuery()
+            ->getOneOrNullResult();
 
-        if ($existing) {
+        if ($existingBooking) {
             return new JsonResponse(['error' => 'Slot already booked'], 409);
         }
 
@@ -264,14 +270,16 @@ class BookingController extends AbstractController
         $startDate = new \DateTime('today');
         $endDate = (new \DateTime('today'))->modify('+30 days');
         
-        // Get all existing bookings for this provider in the date range
+        // Get all confirmed bookings for this provider in the date range (exclude cancelled)
         $existingBookings = $bookingRepository->createQueryBuilder('b')
             ->where('b.provider = :provider')
             ->andWhere('b.datetime >= :startDate')
             ->andWhere('b.datetime <= :endDate')
+            ->andWhere('b.status = :status')
             ->setParameter('provider', $provider)
             ->setParameter('startDate', $startDate)
             ->setParameter('endDate', $endDate)
+            ->setParameter('status', 'confirmed')
             ->getQuery()
             ->getResult();
         
