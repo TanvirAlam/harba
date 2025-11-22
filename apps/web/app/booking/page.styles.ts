@@ -111,6 +111,16 @@ export const Content = styled.div`
   }
 `;
 
+export const InfoBox = styled.div`
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  color: #1e40af;
+  font-size: 0.875rem;
+`;
+
 export const FormGroup = styled.div`
   margin-bottom: 1rem;
 `;

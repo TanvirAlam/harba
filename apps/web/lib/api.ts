@@ -56,6 +56,7 @@ export interface Booking {
   service: string;
   datetime: string;
   user?: string;
+  status: 'confirmed' | 'cancelled';
 }
 
 export const authAPI = {
@@ -100,6 +101,11 @@ export const bookingAPI = {
 
   cancel: async (bookingId: number): Promise<{ message: string }> => {
     const response = await api.delete(`/api/bookings/${bookingId}`);
+    return response.data;
+  },
+
+  hardDelete: async (bookingId: number): Promise<{ message: string }> => {
+    const response = await api.delete(`/api/bookings/${bookingId}/hard-delete`);
     return response.data;
   },
 

@@ -144,13 +144,15 @@ export const BookingsList = styled.div`
   gap: 1rem;
 `;
 
-export const BookingItem = styled.div`
-  border: 1px solid #e5e7eb;
+export const BookingItem = styled.div<{ $cancelled?: boolean }>`
+  border: 1px solid ${props => props.$cancelled ? '#fca5a5' : '#e5e7eb'};
   border-radius: 0.5rem;
   padding: 1rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: ${props => props.$cancelled ? '#fef2f2' : 'white'};
+  opacity: ${props => props.$cancelled ? '0.85' : '1'};
 `;
 
 export const BookingInfo = styled.div`
@@ -168,6 +170,31 @@ export const BookingDetail = styled.p`
   color: #4b5563;
 `;
 
+export const ButtonGroup = styled.div`
+  display: flex;
+  gap: 0.5rem;
+`;
+
+export const EditButton = styled.button`
+  background: #3b82f6;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+
+  &:hover:not(:disabled) {
+    background: #2563eb;
+  }
+
+  &:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+`;
+
 export const CancelButton = styled.button`
   background: #dc2626;
   color: white;
@@ -177,9 +204,46 @@ export const CancelButton = styled.button`
   font-weight: 500;
   transition: background-color 0.2s;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: #b91c1c;
   }
+
+  &:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+`;
+
+export const DeleteButton = styled.button`
+  background: #991b1b;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+
+  &:hover:not(:disabled) {
+    background: #7f1d1d;
+  }
+
+  &:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+`;
+
+export const CancelledBadge = styled.span`
+  display: inline-block;
+  background: #fee2e2;
+  color: #991b1b;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-left: 0.5rem;
 `;
 
 export const LoadingContainer = styled.div`

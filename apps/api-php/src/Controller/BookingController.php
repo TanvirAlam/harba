@@ -81,7 +81,7 @@ class BookingController extends AbstractController
         }
 
         // Validate booking is within provider's working hours
-        $dayOfWeek = $datetime->format('l');
+        $dayOfWeek = strtolower($datetime->format('l'));
         $workingHours = $provider->getWorkingHours();
 
         if (!isset($workingHours[$dayOfWeek]) || empty($workingHours[$dayOfWeek])) {
@@ -164,17 +164,60 @@ class BookingController extends AbstractController
             return new JsonResponse(['error' => 'Unauthorized'], 403);
         }
 
-        $entityManager->remove($booking);
+        // Set status to cancelled instead of deleting
+        $booking->setStatus('cancelled');
         $entityManager->flush();
 
         return new JsonResponse(['message' => 'Booking cancelled']);
+    }
+
+    #[Route('/api/bookings/{id}/hard-delete', name: 'api_bookings_hard_delete', methods: ['DELETE'])]
+    public function hardDelete(int $id, EntityManagerInterface $entityManager): JsonResponse
+    {
+        // Disable soft delete filter to find even soft-deleted bookings
+        $filters = $entityManager->getFilters();
+        if ($filters->isEnabled('softdeleteable')) {
+            $filters->disable('softdeleteable');
+        }
+
+        $booking = $entityManager->getRepository(Booking::class)->find($id);
+
+        if (!$booking) {
+            return new JsonResponse(['error' => 'Booking not found'], 404);
+        }
+
+        if ($booking->getUser() !== $this->getUser() && !$this->isGranted('ROLE_ADMIN')) {
+            return new JsonResponse(['error' => 'Unauthorized'], 403);
+        }
+
+        // Only allow hard delete of cancelled bookings
+        if ($booking->getStatus() !== 'cancelled') {
+            return new JsonResponse(['error' => 'Only cancelled bookings can be deleted'], 400);
+        }
+
+        // Use native SQL to truly delete the record
+        $connection = $entityManager->getConnection();
+        $connection->executeStatement(
+            'DELETE FROM booking WHERE id = :id',
+            ['id' => $id]
+        );
+
+        return new JsonResponse(['message' => 'Booking permanently deleted']);
     }
 
     #[Route('/api/bookings/my', name: 'api_bookings_my', methods: ['GET'])]
     public function myBookings(EntityManagerInterface $entityManager): JsonResponse
     {
         $user = $this->getUser();
-        $bookings = $entityManager->getRepository(Booking::class)->findBy(['user' => $user]);
+        // Get bookings excluding soft-deleted ones
+        $bookings = $entityManager->createQueryBuilder()
+            ->select('b')
+            ->from(Booking::class, 'b')
+            ->where('b.user = :user')
+            ->andWhere('b.deletedAt IS NULL')
+            ->setParameter('user', $user)
+            ->getQuery()
+            ->getResult();
 
         $result = [];
         foreach ($bookings as $booking) {
@@ -184,6 +227,7 @@ class BookingController extends AbstractController
                 'service' => $booking->getService()->getName(),
                 'datetime' => $booking->getDatetime()->format('Y-m-d H:i:s'),
                 'user' => $booking->getUser()->getEmail(),
+                'status' => $booking->getStatus(),
             ];
         }
 
@@ -203,6 +247,7 @@ class BookingController extends AbstractController
                 'service' => $booking->getService()->getName(),
                 'datetime' => $booking->getDatetime()->format('Y-m-d H:i:s'),
                 'user' => $booking->getUser()->getEmail(),
+                'status' => $booking->getStatus(),
             ];
         }
 
@@ -239,7 +284,7 @@ class BookingController extends AbstractController
         // Iterate through each day in the range
         $currentDate = clone $startDate;
         while ($currentDate <= $endDate) {
-            $dayOfWeek = $currentDate->format('l'); // Monday, Tuesday, etc.
+            $dayOfWeek = strtolower($currentDate->format('l')); // monday, tuesday, etc.
             
             // Check if provider works on this day
             if (isset($workingHours[$dayOfWeek]) && !empty($workingHours[$dayOfWeek])) {
