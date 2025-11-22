@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { bookingAPI, Service, Provider } from "../../lib/api";
+import axios from "axios";
 import {
   Container,
   Nav,
@@ -24,6 +25,11 @@ import {
   SlotButton,
 } from "./page.styles";
 
+interface ToastMessage {
+  type: "success" | "error";
+  message: string;
+}
+
 export default function BookingPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
@@ -31,7 +37,41 @@ export default function BookingPage() {
   const [selectedService, setSelectedService] = useState<number | null>(null);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState<ToastMessage | null>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
+
+  const showToast = (type: "success" | "error", message: string) => {
+    setToast({ type, message });
+  };
+
+  const getErrorMessage = (error: unknown): string => {
+    if (axios.isAxiosError(error)) {
+      if (error.response?.data?.message) {
+        return error.response.data.message;
+      }
+      if (error.response?.data?.error) {
+        return error.response.data.error;
+      }
+      if (error.response?.status === 409) {
+        return "This time slot is already booked. Please select another slot.";
+      }
+      if (error.response?.status === 401) {
+        return "Your session has expired. Please log in again.";
+      }
+      if (error.response?.status === 400) {
+        return "Invalid booking data. Please check your selection.";
+      }
+      return `Request failed: ${error.message}`;
+    }
+    return "An unexpected error occurred. Please try again.";
+  };
 
   useEffect(() => {
     loadData();
@@ -47,6 +87,7 @@ export default function BookingPage() {
       setProviders(providersData);
     } catch (error) {
       console.error("Failed to load data", error);
+      showToast("error", getErrorMessage(error));
     }
   };
 
@@ -59,8 +100,12 @@ export default function BookingPage() {
         selectedService
       );
       setAvailableSlots(slots);
+      if (slots.length === 0) {
+        showToast("error", "No available slots found for this provider and service.");
+      }
     } catch (error) {
       console.error("Failed to load slots", error);
+      showToast("error", getErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -73,16 +118,36 @@ export default function BookingPage() {
         service_id: selectedService!,
         datetime,
       });
-      alert("Booking successful!");
-      router.push("/my-bookings"); // Redirect to my bookings
+      showToast("success", "Booking successful! Redirecting...");
+      setTimeout(() => router.push("/my-bookings"), 1500);
     } catch (error) {
       console.error("Failed to book", error);
-      alert("Booking failed");
+      showToast("error", getErrorMessage(error));
     }
   };
 
   return (
     <Container>
+      {toast && (
+        <div
+          style={{
+            position: "fixed",
+            top: "20px",
+            right: "20px",
+            padding: "16px 24px",
+            borderRadius: "8px",
+            backgroundColor: toast.type === "success" ? "#10b981" : "#ef4444",
+            color: "white",
+            fontWeight: "500",
+            boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+            zIndex: 1000,
+            maxWidth: "400px",
+            animation: "slideIn 0.3s ease-out",
+          }}
+        >
+          {toast.message}
+        </div>
+      )}
       <Nav>
         <NavInner>
           <NavContent>
