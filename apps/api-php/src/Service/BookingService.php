@@ -122,8 +122,10 @@ class BookingService
      * 
      * @return Booking[]
      */
-    public function getUserBookings(User $user): array
+    public function getUserBookings(User $user, int $page = 1, int $limit = 20): array
     {
+        $offset = ($page - 1) * $limit;
+        
         return $this->entityManager->createQueryBuilder()
             ->select('b')
             ->from(Booking::class, 'b')
@@ -131,8 +133,25 @@ class BookingService
             ->andWhere('b.deletedAt IS NULL')
             ->setParameter('user', $user)
             ->orderBy('b.datetime', 'ASC')
+            ->setFirstResult($offset)
+            ->setMaxResults($limit)
             ->getQuery()
             ->getResult();
+    }
+
+    /**
+     * Gets total count of user bookings (for pagination).
+     */
+    public function getUserBookingsCount(User $user): int
+    {
+        return (int) $this->entityManager->createQueryBuilder()
+            ->select('COUNT(b.id)')
+            ->from(Booking::class, 'b')
+            ->where('b.user = :user')
+            ->andWhere('b.deletedAt IS NULL')
+            ->setParameter('user', $user)
+            ->getQuery()
+            ->getSingleScalarResult();
     }
 
     /**
@@ -140,9 +159,30 @@ class BookingService
      * 
      * @return Booking[]
      */
-    public function getAllBookings(): array
+    public function getAllBookings(int $page = 1, int $limit = 50): array
     {
-        return $this->entityManager->getRepository(Booking::class)->findAll();
+        $offset = ($page - 1) * $limit;
+        
+        return $this->entityManager->createQueryBuilder()
+            ->select('b')
+            ->from(Booking::class, 'b')
+            ->orderBy('b.datetime', 'DESC')
+            ->setFirstResult($offset)
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Gets total count of all bookings (for pagination).
+     */
+    public function getAllBookingsCount(): int
+    {
+        return (int) $this->entityManager->createQueryBuilder()
+            ->select('COUNT(b.id)')
+            ->from(Booking::class, 'b')
+            ->getQuery()
+            ->getSingleScalarResult();
     }
 
     /**

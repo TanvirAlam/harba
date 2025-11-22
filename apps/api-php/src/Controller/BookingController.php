@@ -161,9 +161,14 @@ class BookingController extends AbstractController
     }
 
     #[Route('/api/bookings/my', name: 'api_bookings_my', methods: ['GET'])]
-    public function myBookings(BookingService $bookingService): JsonResponse
+    public function myBookings(Request $request, BookingService $bookingService): JsonResponse
     {
-        $bookings = $bookingService->getUserBookings($this->getUser());
+        // Get pagination parameters from query string
+        $page = max(1, (int) $request->query->get('page', 1));
+        $limit = min(100, max(1, (int) $request->query->get('limit', 20)));
+        
+        $bookings = $bookingService->getUserBookings($this->getUser(), $page, $limit);
+        $totalCount = $bookingService->getUserBookingsCount($this->getUser());
 
         $result = [];
         foreach ($bookings as $booking) {
@@ -177,13 +182,26 @@ class BookingController extends AbstractController
             ];
         }
 
-        return new JsonResponse($result);
+        return new JsonResponse([
+            'data' => $result,
+            'pagination' => [
+                'page' => $page,
+                'limit' => $limit,
+                'total' => $totalCount,
+                'pages' => (int) ceil($totalCount / $limit),
+            ],
+        ]);
     }
 
     #[Route('/api/bookings/all', name: 'api_bookings_all', methods: ['GET'])]
-    public function allBookings(BookingService $bookingService): JsonResponse
+    public function allBookings(Request $request, BookingService $bookingService): JsonResponse
     {
-        $bookings = $bookingService->getAllBookings();
+        // Get pagination parameters from query string
+        $page = max(1, (int) $request->query->get('page', 1));
+        $limit = min(100, max(1, (int) $request->query->get('limit', 50)));
+        
+        $bookings = $bookingService->getAllBookings($page, $limit);
+        $totalCount = $bookingService->getAllBookingsCount();
 
         $result = [];
         foreach ($bookings as $booking) {
@@ -197,7 +215,15 @@ class BookingController extends AbstractController
             ];
         }
 
-        return new JsonResponse($result);
+        return new JsonResponse([
+            'data' => $result,
+            'pagination' => [
+                'page' => $page,
+                'limit' => $limit,
+                'total' => $totalCount,
+                'pages' => (int) ceil($totalCount / $limit),
+            ],
+        ]);
     }
 
 }

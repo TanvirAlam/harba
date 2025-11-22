@@ -25,3 +25,11 @@ services:
             $environment: '%kernel.environment%'
         tags:
             - { name: kernel.event_listener, event: kernel.exception }
+    
+    # Rate limiting listener for authentication endpoints
+    App\EventListener\RateLimitListener:
+        arguments:
+            $loginLimiter: '@limiter.login'
+            $registrationLimiter: '@limiter.registration'
+        tags:
+            - { name: kernel.event_listener, event: kernel.request, priority: 10 }
