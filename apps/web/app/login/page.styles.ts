@@ -79,7 +79,7 @@ export const InputGroup = styled.div`
 export const Input = styled.input`
   display: block;
   width: 100%;
-  padding: 0.75rem 1rem;
+  padding: 0.75rem 2.5rem 0.75rem 1rem;
   border: 1px solid #d1d5db;
   border-radius: 0.5rem;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -87,7 +87,7 @@ export const Input = styled.input`
     border-color 0.2s,
     box-shadow 0.2s;
   font-size: 1rem;
-  color: black;
+  color: white;
 
   &:focus {
     outline: none;
@@ -102,11 +102,12 @@ export const Input = styled.input`
 
 export const InputIcon = styled.div`
   position: absolute;
-  inset-y: 0;
-  right: 0;
-  padding-right: 0.75rem;
+  top: 50%;
+  right: 0.75rem;
+  transform: translateY(-50%);
   display: flex;
   align-items: center;
+  pointer-events: none;
 `;
 
 export const InputIconSvg = styled.svg`
