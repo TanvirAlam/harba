@@ -2,6 +2,11 @@
 
 A complete full-stack application with Symfony backend API and Next.js frontend, containerized with Docker.
 
+## TOTAL TIME SPENT: 
+    - 8 to 9 houres little by little past 3 days and night
+    - STARTED: 20th
+    - FINISHED: 22nd
+
 #### AI TOOLS USED
 ```
 1. My OWN architectral setup using turborepo
