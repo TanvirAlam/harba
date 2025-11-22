@@ -134,30 +134,40 @@ class BookingController extends AbstractController
         EntityManagerInterface $entityManager,
         BookingService $bookingService
     ): JsonResponse {
-        // Disable soft delete filter to find even soft-deleted bookings
+        // Track filter state to restore it later
         $filters = $entityManager->getFilters();
-        if ($filters->isEnabled('softdeleteable')) {
-            $filters->disable('softdeleteable');
-        }
-
-        $booking = $entityManager->getRepository(Booking::class)->find($id);
-
-        if (!$booking) {
-            return new JsonResponse(['error' => 'Booking not found'], 404);
-        }
-
-        $isAdmin = $this->isGranted('ROLE_ADMIN');
-        if (!$bookingService->canUserCancelBooking($booking, $this->getUser(), $isAdmin)) {
-            return new JsonResponse(['error' => 'Unauthorized'], 403);
-        }
-
+        $filterWasEnabled = $filters->isEnabled('softdeleteable');
+        
         try {
-            $bookingService->hardDeleteBooking($booking);
-        } catch (\InvalidArgumentException $e) {
-            return new JsonResponse(['error' => $e->getMessage()], 400);
-        }
+            // Disable soft delete filter to find even soft-deleted bookings
+            if ($filterWasEnabled) {
+                $filters->disable('softdeleteable');
+            }
 
-        return new JsonResponse(['message' => 'Booking permanently deleted']);
+            $booking = $entityManager->getRepository(Booking::class)->find($id);
+
+            if (!$booking) {
+                return new JsonResponse(['error' => 'Booking not found'], 404);
+            }
+
+            $isAdmin = $this->isGranted('ROLE_ADMIN');
+            if (!$bookingService->canUserCancelBooking($booking, $this->getUser(), $isAdmin)) {
+                return new JsonResponse(['error' => 'Unauthorized'], 403);
+            }
+
+            try {
+                $bookingService->hardDeleteBooking($booking);
+            } catch (\InvalidArgumentException $e) {
+                return new JsonResponse(['error' => $e->getMessage()], 400);
+            }
+
+            return new JsonResponse(['message' => 'Booking permanently deleted']);
+        } finally {
+            // Always restore the filter state
+            if ($filterWasEnabled && !$filters->isEnabled('softdeleteable')) {
+                $filters->enable('softdeleteable');
+            }
+        }
     }
 
     #[Route('/api/bookings/my', name: 'api_bookings_my', methods: ['GET'])]
