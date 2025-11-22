@@ -207,10 +207,11 @@ export const BookingsList = styled.div`
   gap: 1rem;
 `;
 
-export const BookingItem = styled.div`
+export const BookingItem = styled.div<{ $status?: string }>`
   border: 1px solid #e5e7eb;
   border-radius: 0.5rem;
   padding: 1rem;
+  background: ${props => props.$status === 'cancelled' ? '#fee2e2' : 'transparent'};
 `;
 
 export const BookingHeader = styled.div`
@@ -237,6 +238,19 @@ export const BookingDetail = styled.p`
 export const BookingUser = styled.p`
   font-size: 0.875rem;
   color: #374151;
+`;
+
+export const StatusBadge = styled.span<{ $status?: string }>`
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-top: 0.5rem;
+  background: ${props => props.$status === 'cancelled' ? '#dc2626' : '#10b981'};
+  color: white;
+  text-transform: uppercase;
 `;
 
 export const LoadingContainer = styled.div`

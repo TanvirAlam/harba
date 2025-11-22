@@ -34,6 +34,7 @@ import {
   BookingTitle,
   BookingDetail,
   BookingUser,
+  StatusBadge,
   LoadingContainer,
   LoadingText,
 } from "./page.styles";
@@ -132,7 +133,7 @@ export default function DashboardPage() {
                 ) : (
                   <BookingsList>
                     {allBookings.map((booking) => (
-                      <BookingItem key={booking.id}>
+                      <BookingItem key={booking.id} $status={booking.status}>
                         <BookingHeader>
                           <BookingInfo>
                             <BookingTitle>{booking.service}</BookingTitle>
@@ -143,6 +144,9 @@ export default function DashboardPage() {
                               {new Date(booking.datetime).toLocaleString()}
                             </BookingDetail>
                             <BookingUser>User: {booking.user}</BookingUser>
+                            <StatusBadge $status={booking.status}>
+                              {booking.status}
+                            </StatusBadge>
                           </BookingInfo>
                         </BookingHeader>
                       </BookingItem>
