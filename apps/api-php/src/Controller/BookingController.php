@@ -5,20 +5,26 @@ namespace App\Controller;
 use App\Entity\Booking;
 use App\Entity\Provider;
 use App\Entity\Service;
-use App\Repository\BookingRepository;
 use App\Repository\ProviderRepository;
 use App\Repository\ServiceRepository;
+use App\Service\BookingService;
+use App\Service\SlotGeneratorService;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
+
 class BookingController extends AbstractController
 {
     #[Route('/api/bookings/available-slots', name: 'api_bookings_available_slots', methods: ['GET'])]
-    public function availableSlots(Request $request, ProviderRepository $providerRepository, ServiceRepository $serviceRepository, BookingRepository $bookingRepository): JsonResponse
-    {
+    public function availableSlots(
+        Request $request,
+        ProviderRepository $providerRepository,
+        ServiceRepository $serviceRepository,
+        SlotGeneratorService $slotGenerator
+    ): JsonResponse {
         $providerId = $request->query->get('provider_id');
         $serviceId = $request->query->get('service_id');
 
@@ -33,13 +39,16 @@ class BookingController extends AbstractController
             return new JsonResponse(['error' => 'Invalid provider or service'], 404);
         }
 
-        $slots = $this->generateAvailableSlots($provider, $service, $bookingRepository);
+        $slots = $slotGenerator->generateAvailableSlots($provider, $service);
         return new JsonResponse($slots);
     }
 
     #[Route('/api/bookings', name: 'api_bookings_book', methods: ['POST'])]
-    public function book(Request $request, EntityManagerInterface $entityManager): JsonResponse
-    {
+    public function book(
+        Request $request,
+        EntityManagerInterface $entityManager,
+        BookingService $bookingService
+    ): JsonResponse {
         $content = $request->getContent();
         
         // Check for empty body first
@@ -67,85 +76,21 @@ class BookingController extends AbstractController
         $provider = $entityManager->getRepository(Provider::class)->find($data['provider_id']);
         $service = $entityManager->getRepository(Service::class)->find($data['service_id']);
 
-        if (!$provider || !$service) {
-            return new JsonResponse(['error' => 'Invalid provider or service'], 404);
+        // Validate booking data
+        $errors = $bookingService->validateBookingData($provider, $service, $data['datetime']);
+        if (!empty($errors)) {
+            return new JsonResponse(['error' => $errors[0]], 400);
         }
 
-        // Parse and validate datetime
+        // Parse datetime (already validated in service)
+        $datetime = new \DateTime($data['datetime']);
+
+        // Create booking using service
         try {
-            $datetime = new \DateTime($data['datetime']);
-        } catch (\Exception $e) {
-            return new JsonResponse([
-                'error' => 'Invalid datetime format. Expected format: YYYY-MM-DD HH:MM:SS'
-            ], 400);
-        }
-
-        // Validate booking is within provider's working hours
-        $dayOfWeek = strtolower($datetime->format('l'));
-        $workingHours = $provider->getWorkingHours();
-
-        if (!isset($workingHours[$dayOfWeek]) || empty($workingHours[$dayOfWeek])) {
-            return new JsonResponse([
-                'error' => 'Provider does not work on ' . $dayOfWeek
-            ], 400);
-        }
-
-        // Parse working hours and validate booking time
-        if (preg_match('/^(\d{2}:\d{2})-(\d{2}:\d{2})$/', $workingHours[$dayOfWeek], $matches)) {
-            $startTime = \DateTime::createFromFormat('Y-m-d H:i', 
-                                                    $datetime->format('Y-m-d') . ' ' . $matches[1]);
-            $endTime = \DateTime::createFromFormat('Y-m-d H:i', 
-                                                  $datetime->format('Y-m-d') . ' ' . $matches[2]);
-            
-            // Check if booking time is within working hours
-            if ($datetime < $startTime || $datetime >= $endTime) {
-                return new JsonResponse([
-                    'error' => 'Booking time is outside provider working hours (' . $matches[1] . '-' . $matches[2] . ')'
-                ], 400);
-            }
-            
-            // Check if service duration fits within working hours
-            $serviceEndTime = clone $datetime;
-            $serviceEndTime->modify("+{$service->getDuration()} minutes");
-            
-            if ($serviceEndTime > $endTime) {
-                return new JsonResponse([
-                    'error' => 'Service duration extends beyond provider closing time'
-                ], 400);
-            }
-        } else {
-            return new JsonResponse([
-                'error' => 'Invalid working hours format for provider'
-            ], 400);
-        }
-
-        // Check if slot is available (only check for confirmed bookings)
-        $existingBooking = $entityManager->getRepository(Booking::class)
-            ->createQueryBuilder('b')
-            ->where('b.provider = :provider')
-            ->andWhere('b.datetime = :datetime')
-            ->andWhere('b.status = :status')
-            ->setParameter('provider', $provider)
-            ->setParameter('datetime', $datetime)
-            ->setParameter('status', 'confirmed')
-            ->getQuery()
-            ->getOneOrNullResult();
-
-        if ($existingBooking) {
-            return new JsonResponse(['error' => 'Slot already booked'], 409);
-        }
-
-        $booking = new Booking();
-        $booking->setUser($this->getUser());
-        $booking->setProvider($provider);
-        $booking->setService($service);
-        $booking->setDatetime($datetime);
-
-        try {
-            $entityManager->persist($booking);
-            $entityManager->flush();
+            $bookingService->createBooking($this->getUser(), $provider, $service, $datetime);
+        } catch (\InvalidArgumentException $e) {
+            return new JsonResponse(['error' => $e->getMessage()], 409);
         } catch (UniqueConstraintViolationException $e) {
-            // Handle race condition where slot was booked between availability check and save
             return new JsonResponse([
                 'error' => 'Slot already booked (race condition detected)'
             ], 409);
@@ -158,28 +103,37 @@ class BookingController extends AbstractController
     }
 
     #[Route('/api/bookings/{id}', name: 'api_bookings_cancel', methods: ['DELETE'])]
-    public function cancel(int $id, EntityManagerInterface $entityManager): JsonResponse
-    {
+    public function cancel(
+        int $id,
+        EntityManagerInterface $entityManager,
+        BookingService $bookingService
+    ): JsonResponse {
         $booking = $entityManager->getRepository(Booking::class)->find($id);
 
         if (!$booking) {
             return new JsonResponse(['error' => 'Booking not found'], 404);
         }
 
-        if ($booking->getUser() !== $this->getUser() && !$this->isGranted('ROLE_ADMIN')) {
+        $isAdmin = $this->isGranted('ROLE_ADMIN');
+        if (!$bookingService->canUserCancelBooking($booking, $this->getUser(), $isAdmin)) {
             return new JsonResponse(['error' => 'Unauthorized'], 403);
         }
 
-        // Set status to cancelled instead of deleting
-        $booking->setStatus('cancelled');
-        $entityManager->flush();
+        try {
+            $bookingService->cancelBooking($booking);
+        } catch (\InvalidArgumentException $e) {
+            return new JsonResponse(['error' => $e->getMessage()], 400);
+        }
 
         return new JsonResponse(['message' => 'Booking cancelled']);
     }
 
     #[Route('/api/bookings/{id}/hard-delete', name: 'api_bookings_hard_delete', methods: ['DELETE'])]
-    public function hardDelete(int $id, EntityManagerInterface $entityManager): JsonResponse
-    {
+    public function hardDelete(
+        int $id,
+        EntityManagerInterface $entityManager,
+        BookingService $bookingService
+    ): JsonResponse {
         // Disable soft delete filter to find even soft-deleted bookings
         $filters = $entityManager->getFilters();
         if ($filters->isEnabled('softdeleteable')) {
@@ -192,38 +146,24 @@ class BookingController extends AbstractController
             return new JsonResponse(['error' => 'Booking not found'], 404);
         }
 
-        if ($booking->getUser() !== $this->getUser() && !$this->isGranted('ROLE_ADMIN')) {
+        $isAdmin = $this->isGranted('ROLE_ADMIN');
+        if (!$bookingService->canUserCancelBooking($booking, $this->getUser(), $isAdmin)) {
             return new JsonResponse(['error' => 'Unauthorized'], 403);
         }
 
-        // Only allow hard delete of cancelled bookings
-        if ($booking->getStatus() !== 'cancelled') {
-            return new JsonResponse(['error' => 'Only cancelled bookings can be deleted'], 400);
+        try {
+            $bookingService->hardDeleteBooking($booking);
+        } catch (\InvalidArgumentException $e) {
+            return new JsonResponse(['error' => $e->getMessage()], 400);
         }
-
-        // Use native SQL to truly delete the record
-        $connection = $entityManager->getConnection();
-        $connection->executeStatement(
-            'DELETE FROM booking WHERE id = :id',
-            ['id' => $id]
-        );
 
         return new JsonResponse(['message' => 'Booking permanently deleted']);
     }
 
     #[Route('/api/bookings/my', name: 'api_bookings_my', methods: ['GET'])]
-    public function myBookings(EntityManagerInterface $entityManager): JsonResponse
+    public function myBookings(BookingService $bookingService): JsonResponse
     {
-        $user = $this->getUser();
-        // Get bookings excluding soft-deleted ones
-        $bookings = $entityManager->createQueryBuilder()
-            ->select('b')
-            ->from(Booking::class, 'b')
-            ->where('b.user = :user')
-            ->andWhere('b.deletedAt IS NULL')
-            ->setParameter('user', $user)
-            ->getQuery()
-            ->getResult();
+        $bookings = $bookingService->getUserBookings($this->getUser());
 
         $result = [];
         foreach ($bookings as $booking) {
@@ -241,9 +181,9 @@ class BookingController extends AbstractController
     }
 
     #[Route('/api/bookings/all', name: 'api_bookings_all', methods: ['GET'])]
-    public function allBookings(EntityManagerInterface $entityManager): JsonResponse
+    public function allBookings(BookingService $bookingService): JsonResponse
     {
-        $bookings = $entityManager->getRepository(Booking::class)->findAll();
+        $bookings = $bookingService->getAllBookings();
 
         $result = [];
         foreach ($bookings as $booking) {
@@ -260,79 +200,4 @@ class BookingController extends AbstractController
         return new JsonResponse($result);
     }
 
-    private function generateAvailableSlots(Provider $provider, Service $service, BookingRepository $bookingRepository): array
-    {
-        $slots = [];
-        $workingHours = $provider->getWorkingHours();
-        $serviceDuration = $service->getDuration();
-        
-        // Generate slots for the next 30 days
-        $startDate = new \DateTime('today');
-        $endDate = (new \DateTime('today'))->modify('+30 days');
-        
-        // Get all confirmed bookings for this provider in the date range (exclude cancelled)
-        $existingBookings = $bookingRepository->createQueryBuilder('b')
-            ->where('b.provider = :provider')
-            ->andWhere('b.datetime >= :startDate')
-            ->andWhere('b.datetime <= :endDate')
-            ->andWhere('b.status = :status')
-            ->setParameter('provider', $provider)
-            ->setParameter('startDate', $startDate)
-            ->setParameter('endDate', $endDate)
-            ->setParameter('status', 'confirmed')
-            ->getQuery()
-            ->getResult();
-        
-        // Create a set of booked datetimes for quick lookup
-        $bookedSlots = [];
-        foreach ($existingBookings as $booking) {
-            $bookedSlots[$booking->getDatetime()->format('Y-m-d H:i:s')] = true;
-        }
-        
-        // Iterate through each day in the range
-        $currentDate = clone $startDate;
-        while ($currentDate <= $endDate) {
-            $dayOfWeek = strtolower($currentDate->format('l')); // monday, tuesday, etc.
-            
-            // Check if provider works on this day
-            if (isset($workingHours[$dayOfWeek]) && !empty($workingHours[$dayOfWeek])) {
-                $hours = $workingHours[$dayOfWeek];
-                
-                // Parse working hours (e.g., "09:00-17:00")
-                if (preg_match('/^(\d{2}:\d{2})-(\d{2}:\d{2})$/', $hours, $matches)) {
-                    $startTime = $matches[1];
-                    $endTime = $matches[2];
-                    
-                    // Create datetime objects for this day's working hours
-                    $slotTime = \DateTime::createFromFormat('Y-m-d H:i', $currentDate->format('Y-m-d') . ' ' . $startTime);
-                    $dayEndTime = \DateTime::createFromFormat('Y-m-d H:i', $currentDate->format('Y-m-d') . ' ' . $endTime);
-                    
-                    // Generate 30-minute slots
-                    while ($slotTime < $dayEndTime) {
-                        // Check if slot has enough time for the service
-                        $slotEndTime = clone $slotTime;
-                        $slotEndTime->modify("+{$serviceDuration} minutes");
-                        
-                        // Only add slot if service fits within working hours
-                        if ($slotEndTime <= $dayEndTime) {
-                            $slotString = $slotTime->format('Y-m-d H:i:s');
-                            
-                            // Only add if not already booked
-                            if (!isset($bookedSlots[$slotString])) {
-                                $slots[] = $slotString;
-                            }
-                        }
-                        
-                        // Move to next 30-minute slot
-                        $slotTime->modify('+30 minutes');
-                    }
-                }
-            }
-            
-            // Move to next day
-            $currentDate->modify('+1 day');
-        }
-        
-        return $slots;
-    }
 }
