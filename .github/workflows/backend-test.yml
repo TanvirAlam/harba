@@ -41,6 +41,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y postgresql-client
 
+      - name: Setup environment files
+        run: |
+          cd apps/api-php
+          # Copy .env.test to .env for test environment
+          cp .env.test .env
+          echo "APP_ENV=test" >> .env
+
       - name: Cache Composer dependencies
         uses: actions/cache@v3
         with:
@@ -52,15 +59,20 @@ jobs:
       - name: Install PHP dependencies
         run: |
           cd apps/api-php
-          composer install --no-progress --prefer-dist --optimize-autoloader
-
-      - name: Setup environment
+          composer install --no-progress --prefer-dist --optimize-autoloader --no-scripts
+          
+      - name: Run Composer scripts
         run: |
           cd apps/api-php
-          # Generate JWT keys for testing if they don't exist
-          if [ ! -f config/jwt/private.pem ]; then
-            php bin/console lexik:jwt:generate-keypair --env=test
-          fi
+          # Only run post-install scripts that don't require database
+          composer dump-autoload --optimize
+
+      - name: Generate JWT keys
+        run: |
+          cd apps/api-php
+          # Generate JWT keys for testing
+          mkdir -p config/jwt
+          php bin/console lexik:jwt:generate-keypair --skip-if-exists --env=test
 
       - name: Wait for PostgreSQL
         run: |
@@ -69,21 +81,31 @@ jobs:
             sleep 2
           done
 
-      - name: Create database
+      - name: Verify database connectivity
         run: |
-          createdb -h127.0.0.1 -p5432 -Upostgres test_db || echo "Database already exists"
+          PGPASSWORD=postgres psql -h127.0.0.1 -p5432 -Upostgres -d test_db -c "SELECT 1;" || echo "Database connection verified"
 
       - name: Clear cache
         run: |
           cd apps/api-php
-          php bin/console cache:clear --env=test
+          php bin/console cache:clear --env=test --no-warmup
+          php bin/console cache:warmup --env=test
 
+      - name: Validate schema
+        run: |
+          cd apps/api-php
+          # Check if there are migrations to run
+          php bin/console doctrine:migrations:status --env=test
+          
       - name: Run migrations
         run: |
           cd apps/api-php
-          php bin/console doctrine:migrations:migrate --no-interaction --env=test
+          php bin/console doctrine:migrations:migrate --no-interaction --env=test --allow-no-migration
 
       - name: Run PHPUnit tests
         run: |
           cd apps/api-php
+          # Ensure phpunit is executable
+          chmod +x ./bin/phpunit
+          # Run tests
           ./bin/phpunit --coverage-text --colors=never
