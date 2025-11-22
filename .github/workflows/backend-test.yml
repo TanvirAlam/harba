@@ -11,6 +11,8 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      APP_ENV: test
 
     services:
       postgres:
@@ -52,10 +54,13 @@ jobs:
           cd apps/api-php
           composer install --no-progress --prefer-dist --optimize-autoloader
 
-      - name: Copy environment file
+      - name: Setup environment
         run: |
           cd apps/api-php
-          cp .env.test .env
+          # Generate JWT keys for testing if they don't exist
+          if [ ! -f config/jwt/private.pem ]; then
+            php bin/console lexik:jwt:generate-keypair --env=test
+          fi
 
       - name: Wait for PostgreSQL
         run: |
@@ -67,6 +72,11 @@ jobs:
       - name: Create database
         run: |
           createdb -h127.0.0.1 -p5432 -Upostgres test_db || echo "Database already exists"
+
+      - name: Clear cache
+        run: |
+          cd apps/api-php
+          php bin/console cache:clear --env=test
 
       - name: Run migrations
         run: |
