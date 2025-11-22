@@ -38,6 +38,8 @@ export default function BookingPage() {
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<ToastMessage | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const slotsPerPage = 12;
   const router = useRouter();
 
   useEffect(() => {
@@ -98,6 +100,7 @@ export default function BookingPage() {
       return;
     }
     setLoading(true);
+    setCurrentPage(1); // Reset to first page when loading new slots
     try {
       const slots = await bookingAPI.getAvailableSlots(
         selectedProvider,
@@ -217,25 +220,57 @@ export default function BookingPage() {
 
           <SlotsContainer>
             <SlotsTitle>
-              📅 Available Slots
+              📅 Available Slots {availableSlots.length > 0 && `(${availableSlots.length} total)`}
             </SlotsTitle>
             <SlotsGrid>
-              {availableSlots.map((slot) => (
-                <SlotButton
-                  key={slot}
-                  onClick={() => bookSlot(slot)}
-                >
-                  {new Date(slot).toLocaleString('en-US', {
-                    weekday: 'short',
-                    month: 'short',
-                    day: 'numeric',
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    hour12: true
-                  })}
-                </SlotButton>
-              ))}
+              {availableSlots
+                .slice((currentPage - 1) * slotsPerPage, currentPage * slotsPerPage)
+                .map((slot) => (
+                  <SlotButton
+                    key={slot}
+                    onClick={() => bookSlot(slot)}
+                  >
+                    {new Date(slot).toLocaleString('en-US', {
+                      weekday: 'short',
+                      month: 'short',
+                      day: 'numeric',
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      hour12: true
+                    })}
+                  </SlotButton>
+                ))}
             </SlotsGrid>
+            {availableSlots.length > slotsPerPage && (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: '12px',
+                marginTop: '24px',
+                flexWrap: 'wrap'
+              }}>
+                <Button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  $disabled={currentPage === 1}
+                  style={{ minWidth: '100px' }}
+                >
+                  Previous
+                </Button>
+                <span style={{ color: '#6b7280', fontSize: '14px', fontWeight: '500' }}>
+                  Page {currentPage} of {Math.ceil(availableSlots.length / slotsPerPage)}
+                </span>
+                <Button
+                  onClick={() => setCurrentPage(prev => Math.min(Math.ceil(availableSlots.length / slotsPerPage), prev + 1))}
+                  disabled={currentPage === Math.ceil(availableSlots.length / slotsPerPage)}
+                  $disabled={currentPage === Math.ceil(availableSlots.length / slotsPerPage)}
+                  style={{ minWidth: '100px' }}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
           </SlotsContainer>
         </Content>
       </Main>
