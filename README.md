@@ -4,11 +4,11 @@ A complete full-stack application with Symfony backend API and Next.js frontend,
 
 ## Features
 
-- **Backend**: Symfony 7.3 with JWT authentication, Doctrine ORM, MySQL database
+- **Backend**: Symfony 7.3 with JWT authentication, Doctrine ORM, PostgreSQL database
 - **Frontend**: Next.js with React, TypeScript, and Tailwind CSS
 - **Authentication**: JWT-based API authentication with user registration/login
-- **Database**: MySQL 8.0 with Doctrine migrations
-- **Containerization**: Docker Compose setup with PHP-FPM, Nginx, MySQL, and Next.js
+- **Database**: PostgreSQL 15 with Doctrine migrations
+- **Containerization**: Docker Compose setup with PHP-FPM, Nginx, PostgreSQL, and Next.js
 
 ## Project Structure
 
@@ -26,10 +26,11 @@ A complete full-stack application with Symfony backend API and Next.js frontend,
 
 ### Prerequisites
 
-- Docker and Docker Compose
+- Docker and Docker Compose (latest versions recommended)
 - Git
+- At least 4GB RAM available for Docker
 
-### Setup and Run
+### Step-by-Step Setup
 
 1. **Clone the repository**
    ```bash
@@ -40,23 +41,191 @@ A complete full-stack application with Symfony backend API and Next.js frontend,
 2. **Copy environment files**
    ```bash
    cp apps/api-php/.env.example apps/api-php/.env
+   cp .env.example .env  # If you have root env file
    ```
 
-3. **Generate JWT keys** (optional - keys are already generated)
+3. **Review environment configuration** (optional)
    ```bash
-   cd apps/api-php
-   php bin/console lexik:jwt:generate-keypair
-   cd ../..
+   # Check the copied .env file - default values should work for local development
+   cat apps/api-php/.env
    ```
 
-4. **Start all services**
+4. **Start all services with Docker**
    ```bash
+   # Build and start all containers (this may take several minutes on first run)
    docker compose up --build
+
+   # Or run in background
+   docker compose up --build -d
    ```
 
-The application will be available at:
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8080
+5. **Wait for services to be ready**
+   ```bash
+   # Check service status
+   docker compose ps
+
+   # View logs to ensure everything started correctly
+   docker compose logs -f
+   ```
+
+6. **Access the application**
+   - **Frontend (Next.js)**: http://localhost:3000
+   - **Backend API (Symfony)**: http://localhost:8080
+   - **Database**: localhost:8001 (PostgreSQL)
+
+### What to Expect
+
+Once all services are running:
+- **Frontend (localhost:3000)**: Modern React application with booking system
+- **Backend API (localhost:8080)**: REST API with JWT authentication
+- **Database**: PostgreSQL 15 with automatic migrations and seed data
+
+### Running Tests
+
+#### Backend Tests (PHP/Symfony)
+```bash
+# Run tests inside the PHP container
+docker compose exec api-php php bin/phpunit
+
+# Or run specific test files
+docker compose exec api-php php bin/phpunit tests/Controller/BookingControllerTest.php
+
+# Run with coverage (if needed)
+docker compose exec api-php php bin/phpunit --coverage-html=var/coverage
+```
+
+#### Frontend Tests (Next.js/React)
+```bash
+# Run tests inside the web container
+docker compose exec web npm test
+
+# Or run tests in watch mode
+docker compose exec web npm run test:watch
+
+# Run tests with coverage
+docker compose exec web npm test -- --coverage
+```
+
+#### Run All Tests
+```bash
+# Backend tests
+docker compose exec api-php php bin/phpunit
+
+# Frontend tests
+docker compose exec web npm test
+```
+
+### Development Workflow
+
+#### Making Code Changes
+```bash
+# The application uses volume mounting, so changes are reflected immediately
+# Edit files in apps/api-php/ or apps/web/ and see changes live
+```
+
+#### Database Operations
+```bash
+# Access database directly
+docker compose exec db psql -U harba -d harba
+
+# Run migrations manually (usually automatic)
+docker compose exec api-php php bin/console doctrine:migrations:migrate
+
+# Reset database
+docker compose exec api-php php bin/console doctrine:database:drop --force
+docker compose exec api-php php bin/console doctrine:database:create
+docker compose exec api-php php bin/console doctrine:migrations:migrate
+```
+
+#### Logs and Debugging
+```bash
+# View all logs
+docker compose logs -f
+
+# View specific service logs
+docker compose logs -f api-php
+docker compose logs -f web
+docker compose logs -f db
+```
+
+### Verifying Your Setup
+
+1. **Check all services are running:**
+   ```bash
+   docker compose ps
+   # Should show 4 services: db, api-php, nginx, web all healthy
+   ```
+
+2. **Test API connectivity:**
+   ```bash
+   curl http://localhost:8080/api
+   # Should return API documentation or welcome message
+   ```
+
+3. **Test frontend:**
+   - Open http://localhost:3000 in browser
+   - Should show the application homepage
+
+4. **Test database connection:**
+   ```bash
+   docker compose exec api-php php bin/console doctrine:query:sql "SELECT 1"
+   # Should return "1"
+   ```
+
+### Application Features
+
+Once running, you can:
+
+- **Register** a new user account
+- **Login** with JWT authentication
+- **View available services** (haircut, massage, etc.)
+- **Check provider availability** and working hours
+- **Book appointments** with time slot selection
+- **View your bookings** with pagination
+- **Cancel bookings** (if within policy)
+- **Admin features**: View all bookings (admin users only)
+
+### Troubleshooting
+
+#### Common Issues
+
+**Services not starting:**
+```bash
+# Check Docker resources
+docker system df
+
+# Restart with fresh build
+docker compose down -v
+docker compose up --build --force-recreate
+```
+
+**Database connection issues:**
+```bash
+# Check database logs
+docker compose logs db
+
+# Verify environment variables
+docker compose exec api-php env | grep DATABASE
+```
+
+**Port conflicts:**
+```bash
+# Check what's using ports
+lsof -i :3000
+lsof -i :8080
+lsof -i :8001
+
+# Change ports in .env file if needed
+```
+
+**Tests failing:**
+```bash
+# Ensure database is seeded for tests
+docker compose exec api-php php bin/console doctrine:fixtures:load --env=test
+
+# Check test database configuration
+docker compose exec api-php php bin/console doctrine:database:create --env=test
+```
 
 ## API Documentation
 
@@ -67,7 +236,20 @@ The application will be available at:
 | POST | `/api/register` | Register new user | `{"email": "string", "password": "string", "roles": ["ROLE_USER"]}` |
 | POST | `/api/login_check` | Login and get JWT token | `{"username": "string", "password": "string"}` |
 
-### Protected Endpoints
+### Booking System Endpoints
+
+| Method | Endpoint | Description | Headers |
+|--------|----------|-------------|---------|
+| GET | `/api/services` | Get all available services | `Authorization: Bearer <token>` |
+| GET | `/api/providers` | Get all service providers | `Authorization: Bearer <token>` |
+| GET | `/api/bookings/available-slots` | Get available time slots | `Authorization: Bearer <token>` |
+| POST | `/api/bookings` | Create new booking | `Authorization: Bearer <token>` |
+| GET | `/api/bookings/my` | Get user's bookings | `Authorization: Bearer <token>` |
+| GET | `/api/bookings/all` | Get all bookings (admin) | `Authorization: Bearer <token>` |
+| DELETE | `/api/bookings/{id}` | Cancel booking | `Authorization: Bearer <token>` |
+| DELETE | `/api/bookings/{id}/hard-delete` | Permanently delete booking | `Authorization: Bearer <token>` |
+
+### Other Protected Endpoints
 
 | Method | Endpoint | Description | Headers |
 |--------|----------|-------------|---------|
@@ -97,6 +279,59 @@ The application will be available at:
 }
 ```
 
+**Services Response:**
+```json
+[
+  {
+    "id": 1,
+    "name": "Haircut",
+    "duration": 30
+  },
+  {
+    "id": 2,
+    "name": "Massage",
+    "duration": 60
+  }
+]
+```
+
+**Available Slots Response:**
+```json
+[
+  "2024-12-25 09:00:00",
+  "2024-12-25 09:30:00",
+  "2024-12-25 10:00:00"
+]
+```
+
+**Booking Creation Success:**
+```json
+{
+  "message": "Booking created"
+}
+```
+
+**User Bookings Response:**
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "provider": "John Doe",
+      "service": "Haircut",
+      "datetime": "2024-12-25 10:00:00",
+      "status": "confirmed"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 1,
+    "pages": 1
+  }
+}
+```
+
 ## Development
 
 ### Running without Docker
@@ -118,52 +353,135 @@ pnpm dev
 
 ### Database
 
-The application uses MySQL with Doctrine ORM. Migrations are automatically run on container startup.
+The application uses PostgreSQL with Doctrine ORM. Migrations are automatically run on container startup.
 
 ### Environment Variables
 
 Copy `apps/api-php/.env.example` to `apps/api-php/.env` and configure:
 
-- `DATABASE_URL`: MySQL connection string
+- `DATABASE_URL`: PostgreSQL connection string
 - `JWT_SECRET_KEY`: Path to JWT private key
 - `JWT_PUBLIC_KEY`: Path to JWT public key
 - `JWT_PASSPHRASE`: JWT key passphrase
 
 ## Docker Services
 
-- **db**: MySQL 8.0 database
+- **db**: PostgreSQL 15 database
 - **api-php**: PHP 8.4 FPM with Symfony
 - **nginx**: Web server proxying to PHP-FPM
 - **web**: Next.js production build
 
 ## Testing
 
-### API Testing with cURL
+### Automated Test Suites
 
-**Register:**
+#### Backend Tests (PHPUnit)
+```bash
+# Run all PHP tests
+docker compose exec api-php php bin/phpunit
+
+# Run with verbose output
+docker compose exec api-php php bin/phpunit -v
+
+# Run specific test class
+docker compose exec api-php php bin/phpunit tests/Controller/BookingControllerTest.php
+
+# Run tests with coverage report
+docker compose exec api-php php bin/phpunit --coverage-html=var/coverage
+```
+
+#### Frontend Tests (Jest)
+```bash
+# Run all React tests
+docker compose exec web npm test
+
+# Run tests in watch mode (for development)
+docker compose exec web npm run test:watch
+
+# Run tests with coverage
+docker compose exec web npm test -- --coverage
+```
+
+### Manual API Testing with cURL
+
+#### 1. Register a new user
 ```bash
 curl -X POST http://localhost:8080/api/register \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"password123"}'
 ```
 
-**Login:**
+#### 2. Login and get JWT token
 ```bash
 curl -X POST http://localhost:8080/api/login_check \
   -H "Content-Type: application/json" \
   -d '{"username":"test@example.com","password":"password123"}'
 ```
+Save the returned token for subsequent requests.
 
-**Get Profile:**
+#### 3. Get user profile
 ```bash
 curl -X GET http://localhost:8080/api/profile \
   -H "Authorization: Bearer YOUR_JWT_TOKEN"
 ```
 
+#### 4. Get available services
+```bash
+curl -X GET http://localhost:8080/api/services \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+#### 5. Get available providers
+```bash
+curl -X GET http://localhost:8080/api/providers \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+#### 6. Get available slots for a provider/service
+```bash
+curl -X GET "http://localhost:8080/api/bookings/available-slots?provider_id=1&service_id=1" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+#### 7. Book an appointment
+```bash
+curl -X POST http://localhost:8080/api/bookings \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "provider_id": 1,
+    "service_id": 1,
+    "datetime": "2024-12-25 10:00:00"
+  }'
+```
+
+#### 8. View your bookings
+```bash
+curl -X GET "http://localhost:8080/api/bookings/my?page=1&limit=10" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+#### 9. Cancel a booking
+```bash
+curl -X DELETE http://localhost:8080/api/bookings/123 \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+### End-to-End Testing
+
+1. **Start the application** as described in Quick Start
+2. **Open browser** to http://localhost:3000
+3. **Register** a new account
+4. **Login** with your credentials
+5. **Browse services and providers**
+6. **Book an appointment** by selecting time slots
+7. **View your bookings** in the dashboard
+8. **Test booking cancellation** if needed
+
 ## Technologies Used
 
 - **Backend**: Symfony 7.3, Doctrine ORM, LexikJWTAuthenticationBundle
-- **Frontend**: Next.js 16, React 19, TypeScript, Tailwind CSS
-- **Database**: MySQL 8.0
+- **Frontend**: Next.js 16, React 19, TypeScript, Styled Components
+- **Database**: PostgreSQL 15
 - **Containerization**: Docker, Docker Compose
 - **Web Server**: Nginx
