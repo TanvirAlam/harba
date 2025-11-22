@@ -11,6 +11,7 @@ class RateLimitListener
     public function __construct(
         private RateLimiterFactory $loginLimiter,
         private RateLimiterFactory $registrationLimiter,
+        private RateLimiterFactory $bookingLimiter,
     ) {
     }
 
@@ -41,6 +42,20 @@ class RateLimitListener
             if (!$limit->isAccepted()) {
                 $event->setResponse(new JsonResponse([
                     'error' => 'Too many registration attempts. Please try again later.',
+                    'retry_after' => $limit->getRetryAfter()->getTimestamp(),
+                ], 429));
+                return;
+            }
+        }
+        
+        // Apply rate limiting to booking endpoint
+        if ($path === '/api/bookings' && $request->isMethod('POST')) {
+            $limiter = $this->bookingLimiter->create($request->getClientIp());
+            $limit = $limiter->consume();
+
+            if (!$limit->isAccepted()) {
+                $event->setResponse(new JsonResponse([
+                    'error' => 'Too many booking attempts. Please slow down and try again.',
                     'retry_after' => $limit->getRetryAfter()->getTimestamp(),
                 ], 429));
                 return;

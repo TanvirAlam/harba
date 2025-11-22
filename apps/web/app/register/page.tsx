@@ -4,6 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../../contexts/AuthContext";
 import {
+  validateEmail,
+  validatePassword,
+  validatePasswordMatch,
+} from "../../lib/validation";
+import {
   Container,
   Content,
   Card,
@@ -39,16 +44,75 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{
+    email?: string;
+    password?: string;
+    confirmPassword?: string;
+  }>({});
   const { register } = useAuth();
   const router = useRouter();
+
+  const validateForm = (): boolean => {
+    const errors: typeof fieldErrors = {};
+
+    // Validate email
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.valid) {
+      errors.email = emailValidation.error;
+    }
+
+    // Validate password
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.valid) {
+      errors.password = passwordValidation.error;
+    }
+
+    // Validate password match
+    const matchValidation = validatePasswordMatch(password, confirmPassword);
+    if (!matchValidation.valid) {
+      errors.confirmPassword = matchValidation.error;
+    }
+
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleEmailBlur = () => {
+    const validation = validateEmail(email);
+    if (!validation.valid) {
+      setFieldErrors((prev) => ({ ...prev, email: validation.error }));
+    } else {
+      setFieldErrors((prev) => ({ ...prev, email: undefined }));
+    }
+  };
+
+  const handlePasswordBlur = () => {
+    const validation = validatePassword(password);
+    if (!validation.valid) {
+      setFieldErrors((prev) => ({ ...prev, password: validation.error }));
+    } else {
+      setFieldErrors((prev) => ({ ...prev, password: undefined }));
+    }
+  };
+
+  const handleConfirmPasswordBlur = () => {
+    const validation = validatePasswordMatch(password, confirmPassword);
+    if (!validation.valid) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        confirmPassword: validation.error,
+      }));
+    } else {
+      setFieldErrors((prev) => ({ ...prev, confirmPassword: undefined }));
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess("");
 
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
+    if (!validateForm()) {
       return;
     }
 
@@ -98,7 +162,11 @@ export default function RegisterPage() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    onBlur={handleEmailBlur}
                     placeholder="Enter your email"
+                    style={{
+                      borderColor: fieldErrors.email ? "#ef4444" : undefined,
+                    }}
                   />
                   <InputIcon>
                     <InputIconSvg
@@ -115,6 +183,11 @@ export default function RegisterPage() {
                     </InputIconSvg>
                   </InputIcon>
                 </InputGroup>
+                {fieldErrors.email && (
+                  <div style={{ color: "#ef4444", fontSize: "0.875rem", marginTop: "0.25rem" }}>
+                    {fieldErrors.email}
+                  </div>
+                )}
               </FormGroup>
               <FormGroup>
                 <Label htmlFor="password">Password</Label>
@@ -126,7 +199,11 @@ export default function RegisterPage() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    onBlur={handlePasswordBlur}
                     placeholder="Create a password"
+                    style={{
+                      borderColor: fieldErrors.password ? "#ef4444" : undefined,
+                    }}
                   />
                   <InputIcon>
                     <InputIconSvg
@@ -143,6 +220,11 @@ export default function RegisterPage() {
                     </InputIconSvg>
                   </InputIcon>
                 </InputGroup>
+                {fieldErrors.password && (
+                  <div style={{ color: "#ef4444", fontSize: "0.875rem", marginTop: "0.25rem" }}>
+                    {fieldErrors.password}
+                  </div>
+                )}
               </FormGroup>
               <FormGroup>
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
@@ -154,7 +236,13 @@ export default function RegisterPage() {
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
+                    onBlur={handleConfirmPasswordBlur}
                     placeholder="Confirm your password"
+                    style={{
+                      borderColor: fieldErrors.confirmPassword
+                        ? "#ef4444"
+                        : undefined,
+                    }}
                   />
                   <InputIcon>
                     <InputIconSvg
@@ -171,6 +259,11 @@ export default function RegisterPage() {
                     </InputIconSvg>
                   </InputIcon>
                 </InputGroup>
+                {fieldErrors.confirmPassword && (
+                  <div style={{ color: "#ef4444", fontSize: "0.875rem", marginTop: "0.25rem" }}>
+                    {fieldErrors.confirmPassword}
+                  </div>
+                )}
               </FormGroup>
             </FormFields>
             <ButtonGroup>

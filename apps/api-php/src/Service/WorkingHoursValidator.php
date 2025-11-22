@@ -7,6 +7,104 @@ use App\Entity\Service;
 
 class WorkingHoursValidator
 {
+    private const VALID_DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    
+    /**
+     * Validates the format and logic of a time string (HH:MM).
+     * 
+     * @return array{valid: bool, error: ?string}
+     */
+    public function validateTimeFormat(string $time): array
+    {
+        // Check format
+        if (!preg_match('/^\d{2}:\d{2}$/', $time)) {
+            return ['valid' => false, 'error' => 'Time must be in HH:MM format'];
+        }
+        
+        [$hours, $minutes] = explode(':', $time);
+        $hours = (int) $hours;
+        $minutes = (int) $minutes;
+        
+        // Validate ranges
+        if ($hours < 0 || $hours > 23) {
+            return ['valid' => false, 'error' => 'Hours must be between 00 and 23'];
+        }
+        
+        if ($minutes < 0 || $minutes > 59) {
+            return ['valid' => false, 'error' => 'Minutes must be between 00 and 59'];
+        }
+        
+        return ['valid' => true, 'error' => null];
+    }
+    
+    /**
+     * Validates working hours string format and logic.
+     * 
+     * @return array{valid: bool, error: ?string}
+     */
+    public function validateWorkingHoursString(string $hoursString): array
+    {
+        // Check format: HH:MM-HH:MM
+        if (!preg_match('/^(\d{2}:\d{2})-(\d{2}:\d{2})$/', $hoursString, $matches)) {
+            return ['valid' => false, 'error' => 'Working hours must be in format HH:MM-HH:MM'];
+        }
+        
+        $startTime = $matches[1];
+        $endTime = $matches[2];
+        
+        // Validate start time format
+        $startValidation = $this->validateTimeFormat($startTime);
+        if (!$startValidation['valid']) {
+            return ['valid' => false, 'error' => 'Start time: ' . $startValidation['error']];
+        }
+        
+        // Validate end time format
+        $endValidation = $this->validateTimeFormat($endTime);
+        if (!$endValidation['valid']) {
+            return ['valid' => false, 'error' => 'End time: ' . $endValidation['error']];
+        }
+        
+        // Validate start < end
+        if ($startTime >= $endTime) {
+            return ['valid' => false, 'error' => 'Start time must be before end time'];
+        }
+        
+        return ['valid' => true, 'error' => null];
+    }
+    
+    /**
+     * Validates entire working hours array structure.
+     * 
+     * @return array<string> Array of validation errors (empty if valid)
+     */
+    public function validateWorkingHoursArray(array $workingHours): array
+    {
+        $errors = [];
+        
+        foreach ($workingHours as $day => $hours) {
+            $dayLower = strtolower($day);
+            
+            // Validate day name
+            if (!in_array($dayLower, self::VALID_DAYS, true)) {
+                $errors[] = "Invalid day name: {$day}. Must be one of: " . implode(', ', self::VALID_DAYS);
+                continue;
+            }
+            
+            // Empty hours means day off - that's valid
+            if (empty($hours)) {
+                continue;
+            }
+            
+            // Validate hours format
+            $validation = $this->validateWorkingHoursString($hours);
+            if (!$validation['valid']) {
+                $errors[] = "{$day}: {$validation['error']}";
+            }
+        }
+        
+        return $errors;
+    }
+    
     /**
      * Validates if a provider works on a given day of the week.
      */

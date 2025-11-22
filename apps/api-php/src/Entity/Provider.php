@@ -3,6 +3,7 @@
 namespace App\Entity;
 
 use App\Repository\ProviderRepository;
+use App\Validator\Constraints as AppAssert;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -27,6 +28,7 @@ class Provider
     #[ORM\Column(type: 'json')]
     #[Assert\NotNull(message: 'Working hours are required')]
     #[Assert\Type(type: 'array', message: 'Working hours must be an array')]
+    #[AppAssert\ValidWorkingHours]
     private array $workingHours = []; // e.g., ['monday' => '09:00-17:00', 'tuesday' => '09:00-17:00', ...]
 
     public function getId(): ?int

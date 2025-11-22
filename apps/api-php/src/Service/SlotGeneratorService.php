@@ -99,8 +99,8 @@ class SlotGeneratorService
                 }
             }
             
-            // Move to next slot interval (use service duration)
-            $slotTime->modify('+' . $service->getDuration() . ' minutes');
+            // Move to next slot interval (use consistent 30-minute intervals)
+            $slotTime->modify('+' . self::SLOT_INTERVAL_MINUTES . ' minutes');
         }
         
         return $slots;

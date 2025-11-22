@@ -75,6 +75,7 @@ export default function BookingPage() {
 
   useEffect(() => {
     loadData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadData = async () => {
@@ -92,7 +93,10 @@ export default function BookingPage() {
   };
 
   const loadSlots = async () => {
-    if (!selectedProvider || !selectedService) return;
+    if (!selectedProvider || !selectedService) {
+      showToast("error", "Please select both a provider and service");
+      return;
+    }
     setLoading(true);
     try {
       const slots = await bookingAPI.getAvailableSlots(
@@ -112,6 +116,12 @@ export default function BookingPage() {
   };
 
   const bookSlot = async (datetime: string) => {
+    // Validate selections before booking
+    if (!selectedProvider || !selectedService) {
+      showToast("error", "Please select both a provider and service");
+      return;
+    }
+    
     try {
       await bookingAPI.book({
         provider_id: selectedProvider!,

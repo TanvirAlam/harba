@@ -95,12 +95,10 @@ class BookingService
             throw new \InvalidArgumentException('Only cancelled bookings can be deleted');
         }
         
-        // Use native SQL to truly delete the record
-        $connection = $this->entityManager->getConnection();
-        $connection->executeStatement(
-            'DELETE FROM booking WHERE id = :id',
-            ['id' => $booking->getId()]
-        );
+        // Use Doctrine to permanently delete the record
+        // Note: Soft-delete filter should already be disabled by the caller
+        $this->entityManager->remove($booking);
+        $this->entityManager->flush();
     }
 
     /**
@@ -212,6 +210,18 @@ class BookingService
         } catch (\Exception $e) {
             $errors[] = 'Invalid datetime format. Expected format: YYYY-MM-DD HH:MM:SS';
             return $errors; // Can't continue validation without valid datetime
+        }
+        
+        // Validate datetime is not in the past
+        $now = new \DateTime('now');
+        if ($datetime < $now) {
+            $errors[] = 'Booking time cannot be in the past';
+        }
+        
+        // Validate datetime is not too far in the future (e.g., max 6 months)
+        $maxFutureDate = (new \DateTime('now'))->modify('+6 months');
+        if ($datetime > $maxFutureDate) {
+            $errors[] = 'Booking time cannot be more than 6 months in the future';
         }
         
         // Validate working hours if we have provider and service
