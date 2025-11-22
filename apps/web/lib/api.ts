@@ -59,6 +59,18 @@ export interface Booking {
   status: 'confirmed' | 'cancelled';
 }
 
+export interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
+}
+
+export interface PaginatedResponse<T> {
+  data: T;
+  pagination: PaginationInfo;
+}
+
 export const authAPI = {
   login: async (data: LoginData): Promise<AuthResponse> => {
     const response = await api.post('/api/login_check', data);
@@ -109,14 +121,16 @@ export const bookingAPI = {
     return response.data;
   },
 
-  getMyBookings: async (): Promise<Booking[]> => {
-    const response = await api.get('/api/bookings/my');
-    return response.data;
+  getMyBookings: async (page = 1, limit = 20): Promise<Booking[]> => {
+    const response = await api.get(`/api/bookings/my?page=${page}&limit=${limit}`);
+    // Handle both old (array) and new (paginated) response formats
+    return Array.isArray(response.data) ? response.data : response.data.data;
   },
 
-  getAllBookings: async (): Promise<Booking[]> => {
-    const response = await api.get('/api/bookings/all');
-    return response.data;
+  getAllBookings: async (page = 1, limit = 50): Promise<Booking[]> => {
+    const response = await api.get(`/api/bookings/all?page=${page}&limit=${limit}`);
+    // Handle both old (array) and new (paginated) response formats
+    return Array.isArray(response.data) ? response.data : response.data.data;
   },
 };
 
