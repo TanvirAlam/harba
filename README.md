@@ -101,7 +101,18 @@ A complete full-stack application with Symfony backend API and Next.js frontend,
    docker compose logs -f
    ```
 
-6. **Access the application**
+6. **Seed the database** (automatic on first startup)
+   ```bash
+   # Database seeding happens automatically when DATABASE_SEED=true in .env
+   # To manually seed/reseed the database:
+   docker compose exec api-php php bin/console doctrine:fixtures:load --no-interaction
+   ```
+
+   **Test Credentials** (after seeding):
+   - **Regular user**: `user@example.com` / `user123`
+   - **Admin user**: `admin@example.com` / `admin123`
+
+7. **Access the application**
    - **Frontend (Next.js)**: http://localhost:3000
    - **Backend API (Symfony)**: http://localhost:8080
    - **Database**: localhost:8001 (PostgreSQL)
@@ -159,16 +170,27 @@ docker compose exec web npm test
 #### Database Operations
 ```bash
 # Access database directly
-docker compose exec db psql -U harba -d harba
+docker compose exec db psql -U postgres -d harba
 
 # Run migrations manually (usually automatic)
 docker compose exec api-php php bin/console doctrine:migrations:migrate
 
-# Reset database
+# Load/reload seed data
+docker compose exec api-php php bin/console doctrine:fixtures:load --no-interaction
+
+# Reset database and reseed
 docker compose exec api-php php bin/console doctrine:database:drop --force
 docker compose exec api-php php bin/console doctrine:database:create
 docker compose exec api-php php bin/console doctrine:migrations:migrate
+docker compose exec api-php php bin/console doctrine:fixtures:load --no-interaction
 ```
+
+**Seeded Data Includes:**
+- **Services**: Haircut (30 min), Massage (60 min), Facial (45 min), Consultation (30 min)
+- **Providers**: John Doe, Jane Smith, Alex Johnson (with working hours)
+- **Users**: 
+  - Regular user: `user@example.com` / `user123`
+  - Admin user: `admin@example.com` / `admin123`
 
 #### Logs and Debugging
 ```bash
@@ -210,13 +232,18 @@ docker compose logs -f db
 Once running, you can:
 
 - **Register** a new user account
-- **Login** with JWT authentication
-- **View available services** (haircut, massage, etc.)
+- **Login** with JWT authentication (or use seeded test accounts)
+- **View available services** (haircut, massage, facial, consultation)
 - **Check provider availability** and working hours
 - **Book appointments** with time slot selection
 - **View your bookings** with pagination
 - **Cancel bookings** (if within policy)
 - **Admin features**: View all bookings (admin users only)
+
+**Quick Test:**
+Login with seeded credentials:
+- User: `user@example.com` / `user123`
+- Admin: `admin@example.com` / `admin123`
 
 ### Troubleshooting
 
@@ -446,9 +473,15 @@ curl -X POST http://localhost:8080/api/register \
 
 #### 2. Login and get JWT token
 ```bash
+# Using your registered user
 curl -X POST http://localhost:8080/api/login_check \
   -H "Content-Type: application/json" \
   -d '{"username":"test@example.com","password":"password123"}'
+
+# Or use seeded test user
+curl -X POST http://localhost:8080/api/login_check \
+  -H "Content-Type: application/json" \
+  -d '{"username":"user@example.com","password":"user123"}'
 ```
 Save the returned token for subsequent requests.
 
