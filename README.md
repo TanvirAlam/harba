@@ -127,40 +127,155 @@ Once all services are running:
 - **Backend API (localhost:8080)**: REST API with JWT authentication
 - **Database**: MySQL 8.0 with automatic migrations and seed data
 
+## Testing
+
 ### Running Tests
 
-#### Backend Tests (PHP/Symfony)
+The project includes comprehensive test suites for both backend and frontend applications.
+
+#### Backend Tests (apps/api-php)
+
+The backend uses **PHPUnit 12.4** for testing with a dedicated test database.
+
+**Setup Test Environment (First Time Only):**
 ```bash
-# Run tests inside the PHP container
-docker compose exec api-php php bin/phpunit
+# 1. Start MySQL container
+docker compose up -d db
 
-# Or run specific test files
-docker compose exec api-php php bin/phpunit tests/Controller/BookingControllerTest.php
+# 2. Create test database
+docker compose exec db mysql -u root -p<ROOT_PASSWORD> -e "CREATE DATABASE IF NOT EXISTS harba_test_test; GRANT ALL PRIVILEGES ON harba_test_test.* TO 'harba_user'@'%'; FLUSH PRIVILEGES;"
 
-# Run with coverage (if needed)
-docker compose exec api-php php bin/phpunit --coverage-html=var/coverage
+# 3. Run migrations on test database
+cd apps/api-php
+php bin/console doctrine:migrations:migrate --env=test --no-interaction
+
+# 4. Clear test cache
+php bin/console cache:clear --env=test
 ```
 
-#### Frontend Tests (Next.js/React)
+**Running Backend Tests:**
 ```bash
-# Run tests inside the web container
-docker compose exec web npm test
+# Run all tests (62 tests, 511 assertions)
+cd apps/api-php
+./vendor/bin/phpunit
 
-# Or run tests in watch mode
-docker compose exec web npm run test:watch
+# Run with verbose output
+./vendor/bin/phpunit -v
+
+# Run specific test file
+./vendor/bin/phpunit tests/Controller/BookingControllerTest.php
+
+# Run specific test method
+./vendor/bin/phpunit --filter=testBookingCreation
+
+# Run tests by directory
+./vendor/bin/phpunit tests/Entity
+./vendor/bin/phpunit tests/Controller
+./vendor/bin/phpunit tests/Repository
+
+# Run with coverage report (requires Xdebug)
+./vendor/bin/phpunit --coverage-html=var/coverage
+```
+
+**Test Structure:**
+- `tests/Controller/` - API endpoint tests
+- `tests/Entity/` - Entity model tests
+- `tests/Repository/` - Database repository tests
+- `tests/Validation/` - Input validation tests
+
+**Key Test Features:**
+- Rate limiting disabled in test environment
+- Dedicated test database (`harba_test_test`)
+- Automatic test data cleanup between tests
+- JWT authentication in tests
+
+#### Frontend Tests (apps/web)
+
+The frontend uses **Jest** and **React Testing Library** for testing.
+
+**Running Frontend Tests:**
+```bash
+# Run all tests
+cd apps/web
+pnpm test
+
+# Run tests in watch mode (for development)
+pnpm test:watch
 
 # Run tests with coverage
-docker compose exec web npm test -- --coverage
+pnpm test -- --coverage
+
+# Run specific test file
+pnpm test -- __tests__/login.test.tsx
+
+# Update snapshots
+pnpm test -- -u
 ```
 
-#### Run All Tests
+**Test Structure:**
+- `__tests__/` - React component and integration tests
+- `jest.config.js` - Jest configuration
+- `jest.setup.js` - Test environment setup
+
+#### Running Tests in Docker
+
+**Backend (inside container):**
 ```bash
-# Backend tests
-docker compose exec api-php php bin/phpunit
+# Run all backend tests
+docker compose exec api-php ./vendor/bin/phpunit
 
-# Frontend tests
-docker compose exec web npm test
+# Run specific test
+docker compose exec api-php ./vendor/bin/phpunit tests/Controller/BookingControllerTest.php
+
+# Run with verbose output
+docker compose exec api-php ./vendor/bin/phpunit -v
 ```
+
+**Frontend (inside container):**
+```bash
+# Run all frontend tests
+docker compose exec web pnpm test
+
+# Run tests with coverage
+docker compose exec web pnpm test -- --coverage
+```
+
+#### Running All Tests
+
+```bash
+# Run backend tests
+cd apps/api-php && ./vendor/bin/phpunit && cd ../..
+
+# Run frontend tests
+cd apps/web && pnpm test && cd ../..
+```
+
+#### Continuous Integration
+
+Tests run automatically on GitHub Actions for:
+- Pull requests
+- Pushes to main branch
+- Scheduled daily runs
+
+**CI Workflow includes:**
+- Backend: PHPUnit tests with MySQL
+- Frontend: Jest tests with coverage
+- Code quality checks
+- Type checking (TypeScript)
+
+#### Test Coverage
+
+**Backend:**
+- Controllers: API endpoint tests
+- Entities: Model validation and constraints
+- Services: Business logic (booking, slots, validation)
+- Repositories: Database queries
+
+**Frontend:**
+- Component rendering
+- User interactions
+- API integration
+- Authentication flows
 
 ### Development Workflow
 
@@ -443,38 +558,7 @@ Copy `.env.example` to `.env` in the root directory and configure:
 - **nginx**: Web server proxying to PHP-FPM
 - **web**: Next.js production build
 
-## Testing
-
-### Automated Test Suites
-
-#### Backend Tests (PHPUnit)
-```bash
-# Run all PHP tests
-docker compose exec api-php php bin/phpunit
-
-# Run with verbose output
-docker compose exec api-php php bin/phpunit -v
-
-# Run specific test class
-docker compose exec api-php php bin/phpunit tests/Controller/BookingControllerTest.php
-
-# Run tests with coverage report
-docker compose exec api-php php bin/phpunit --coverage-html=var/coverage
-```
-
-#### Frontend Tests (Jest)
-```bash
-# Run all React tests
-docker compose exec web npm test
-
-# Run tests in watch mode (for development)
-docker compose exec web npm run test:watch
-
-# Run tests with coverage
-docker compose exec web npm test -- --coverage
-```
-
-### Manual API Testing with cURL
+## Manual API Testing with cURL
 
 #### 1. Register a new user
 ```bash
