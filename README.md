@@ -10,6 +10,7 @@ A complete full-stack application with Symfony backend API and Next.js frontend,
 #### AI TOOLS USED
 ```
 1. My OWN architectral setup using turborepo
+    - Turborepo: `pnpm dlx create-turbo@latest`: https://turborepo.com/docs/getting-started/installation
     - 'composer create-project symfony/skeleton apps/api-php'
     - 'npx create-next-app@latest apps/web'
 

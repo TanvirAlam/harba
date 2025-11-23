@@ -37,23 +37,26 @@ describe('BookingPage', () => {
     ]);
   });
 
-  it('renders the booking page with title', () => {
+  it('renders the booking page with title', async () => {
     render(<BookingPage />);
 
     expect(screen.getByText('Book an Appointment')).toBeInTheDocument();
+    
+    // Wait for initial data load to complete
+    await waitFor(() => {
+      expect(bookingAPI.getServices).toHaveBeenCalled();
+    });
   });
 
   it('loads services and providers on mount', async () => {
-    await act(async () => {
-      render(<BookingPage />);
-    });
+    render(<BookingPage />);
 
     await waitFor(() => {
       expect(bookingAPI.getServices).toHaveBeenCalledTimes(1);
       expect(bookingAPI.getProviders).toHaveBeenCalledTimes(1);
+      expect(screen.getByText('Haircut (30 min)')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Haircut (30 min)')).toBeInTheDocument();
     expect(screen.getByText('Massage (60 min)')).toBeInTheDocument();
     expect(screen.getByText('John Doe')).toBeInTheDocument();
     expect(screen.getByText('Jane Smith')).toBeInTheDocument();
@@ -71,15 +74,16 @@ describe('BookingPage', () => {
 
     await waitFor(() => {
       expect(bookingAPI.getServices).toHaveBeenCalled();
+      expect(screen.getByText('John Doe')).toBeInTheDocument();
     });
 
     // Select provider
     const providerSelect = screen.getByLabelText('Select Provider:');
-    fireEvent.change(providerSelect, { target: { value: '1' } });
+    await user.selectOptions(providerSelect, '1');
 
     // Select service
     const serviceSelect = screen.getByLabelText('Select Service:');
-    fireEvent.change(serviceSelect, { target: { value: '1' } });
+    await user.selectOptions(serviceSelect, '1');
 
     // Click show slots button
     const showSlotsButton = screen.getByText('Show Available Slots');
@@ -87,10 +91,10 @@ describe('BookingPage', () => {
 
     await waitFor(() => {
       expect(bookingAPI.getAvailableSlots).toHaveBeenCalledWith(1, 1);
+      expect(screen.getByText(/Available Slots \(2 total\)/)).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Available Slots')).toBeInTheDocument();
-    expect(screen.getAllByRole('button', { name: /Dec 1, 2023/ })).toHaveLength(2);
+    expect(screen.getAllByRole('button', { name: /Fri, Dec 1/ })).toHaveLength(2);
   });
 
   it('books a slot when clicked', async () => {
@@ -103,6 +107,7 @@ describe('BookingPage', () => {
 
     await waitFor(() => {
       expect(bookingAPI.getServices).toHaveBeenCalled();
+      expect(screen.getByText('John Doe')).toBeInTheDocument();
     });
 
     // Select provider and service
@@ -121,7 +126,7 @@ describe('BookingPage', () => {
     });
 
     // Click on slot to book
-    const slotButton = screen.getByRole('button', { name: /Dec 1, 2023/ });
+    const slotButton = await screen.findByRole('button', { name: /Fri, Dec 1/ });
     await user.click(slotButton);
 
     await waitFor(() => {
@@ -130,13 +135,15 @@ describe('BookingPage', () => {
         service_id: 1,
         datetime: '2023-12-01 10:00:00',
       });
+      expect(screen.getByText(/Booking successful!/)).toBeInTheDocument();
     });
-
-    expect(screen.getByText('Booking successful!')).toBeInTheDocument();
   });
 
   it('handles booking errors', async () => {
     const user = userEvent.setup();
+    
+    // Suppress expected console.error in this test
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
 
     bookingAPI.getAvailableSlots.mockResolvedValue(['2023-12-01 10:00:00']);
     bookingAPI.book.mockRejectedValue(new Error('Booking failed'));
@@ -145,6 +152,7 @@ describe('BookingPage', () => {
 
     await waitFor(() => {
       expect(bookingAPI.getServices).toHaveBeenCalled();
+      expect(screen.getByText('John Doe')).toBeInTheDocument();
     });
 
     // Select provider and service
@@ -163,14 +171,16 @@ describe('BookingPage', () => {
     });
 
     // Click on slot to book
-    const slotButton = screen.getByRole('button', { name: /Dec 1, 2023/ });
+    const slotButton = await screen.findByRole('button', { name: /Fri, Dec 1/ });
     await user.click(slotButton);
 
     await waitFor(() => {
       expect(bookingAPI.book).toHaveBeenCalled();
+      expect(screen.getByText(/An unexpected error occurred/)).toBeInTheDocument();
     });
-
-    expect(screen.getByText('Booking failed')).toBeInTheDocument();
+    
+    // Restore console.error
+    consoleErrorSpy.mockRestore();
   });
 
   it('disables show slots button when provider or service not selected', async () => {
@@ -178,6 +188,7 @@ describe('BookingPage', () => {
 
     await waitFor(() => {
       expect(bookingAPI.getServices).toHaveBeenCalled();
+      expect(screen.getByText('John Doe')).toBeInTheDocument();
     });
 
     const showSlotsButton = screen.getByText('Show Available Slots');
@@ -193,6 +204,8 @@ describe('BookingPage', () => {
     const serviceSelect = screen.getByLabelText('Select Service:');
     fireEvent.change(serviceSelect, { target: { value: '1' } });
 
-    expect(showSlotsButton).not.toBeDisabled();
+    await waitFor(() => {
+      expect(showSlotsButton).not.toBeDisabled();
+    });
   });
 });

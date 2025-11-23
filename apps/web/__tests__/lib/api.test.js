@@ -1,17 +1,34 @@
+// Mock axios - create a shared mock instance
+jest.mock('axios', () => {
+  const mockInstance = {
+    get: jest.fn(),
+    post: jest.fn(),
+    delete: jest.fn(),
+    interceptors: {
+      request: {
+        use: jest.fn(),
+      },
+      response: {
+        use: jest.fn(),
+      },
+    },
+  };
+  
+  return {
+    __esModule: true,
+    default: {
+      create: jest.fn(() => mockInstance),
+      _mockInstance: mockInstance, // Expose for tests
+    },
+  };
+});
+
 import axios from 'axios';
 import { bookingAPI } from '../../lib/api';
 
-// Mock axios
-jest.mock('axios');
+// Get reference to the mock instance
+const mockApiInstance = axios._mockInstance;
 const mockedAxios = axios;
-
-// Mock the api instance
-const mockApiInstance = {
-  get: jest.fn(),
-  post: jest.fn(),
-  delete: jest.fn(),
-};
-mockedAxios.create.mockReturnValue(mockApiInstance);
 
 describe('bookingAPI', () => {
   beforeEach(() => {
@@ -42,11 +59,9 @@ describe('bookingAPI', () => {
       expect(mockApiInstance.get).toHaveBeenCalledWith('/api/services');
     });
 
-    it('should handle API errors', async () => {
+  it('should handle API errors', async () => {
       const errorMessage = 'Network Error';
-      mockedAxios.create.mockReturnValue({
-        get: jest.fn().mockRejectedValue(new Error(errorMessage)),
-      });
+      mockApiInstance.get.mockRejectedValue(new Error(errorMessage));
 
       await expect(bookingAPI.getServices()).rejects.toThrow(errorMessage);
     });
@@ -58,13 +73,12 @@ describe('bookingAPI', () => {
         { id: 1, name: 'John Doe', workingHours: { monday: '09:00-17:00' } },
       ];
 
-      mockedAxios.create.mockReturnValue({
-        get: jest.fn().mockResolvedValue({ data: mockProviders }),
-      });
+      mockApiInstance.get.mockResolvedValue({ data: mockProviders });
 
       const result = await bookingAPI.getProviders();
 
       expect(result).toEqual(mockProviders);
+      expect(mockApiInstance.get).toHaveBeenCalledWith('/api/providers');
     });
   });
 
@@ -74,14 +88,12 @@ describe('bookingAPI', () => {
       const providerId = 1;
       const serviceId = 2;
 
-      mockedAxios.create.mockReturnValue({
-        get: jest.fn().mockResolvedValue({ data: mockSlots }),
-      });
+      mockApiInstance.get.mockResolvedValue({ data: mockSlots });
 
       const result = await bookingAPI.getAvailableSlots(providerId, serviceId);
 
       expect(result).toEqual(mockSlots);
-      expect(mockedAxios.create().get).toHaveBeenCalledWith('/api/bookings/available-slots', {
+      expect(mockApiInstance.get).toHaveBeenCalledWith('/api/bookings/available-slots', {
         params: { provider_id: providerId, service_id: serviceId },
       });
     });
@@ -96,14 +108,12 @@ describe('bookingAPI', () => {
       };
       const mockResponse = { message: 'Booking created' };
 
-      mockedAxios.create.mockReturnValue({
-        post: jest.fn().mockResolvedValue({ data: mockResponse }),
-      });
+      mockApiInstance.post.mockResolvedValue({ data: mockResponse });
 
       const result = await bookingAPI.book(bookingData);
 
       expect(result).toEqual(mockResponse);
-      expect(mockedAxios.create().post).toHaveBeenCalledWith('/api/bookings', bookingData);
+      expect(mockApiInstance.post).toHaveBeenCalledWith('/api/bookings', bookingData);
     });
   });
 
@@ -112,14 +122,12 @@ describe('bookingAPI', () => {
       const bookingId = 123;
       const mockResponse = { message: 'Booking cancelled' };
 
-      mockedAxios.create.mockReturnValue({
-        delete: jest.fn().mockResolvedValue({ data: mockResponse }),
-      });
+      mockApiInstance.delete.mockResolvedValue({ data: mockResponse });
 
       const result = await bookingAPI.cancel(bookingId);
 
       expect(result).toEqual(mockResponse);
-      expect(mockedAxios.create().delete).toHaveBeenCalledWith(`/api/bookings/${bookingId}`);
+      expect(mockApiInstance.delete).toHaveBeenCalledWith(`/api/bookings/${bookingId}`);
     });
   });
 
@@ -129,14 +137,12 @@ describe('bookingAPI', () => {
         { id: 1, provider: 'John Doe', service: 'Haircut', datetime: '2023-12-01 10:00:00' },
       ];
 
-      mockedAxios.create.mockReturnValue({
-        get: jest.fn().mockResolvedValue({ data: mockBookings }),
-      });
+      mockApiInstance.get.mockResolvedValue({ data: mockBookings });
 
       const result = await bookingAPI.getMyBookings();
 
       expect(result).toEqual(mockBookings);
-      expect(mockedAxios.create().get).toHaveBeenCalledWith('/api/bookings/my');
+      expect(mockApiInstance.get).toHaveBeenCalledWith('/api/bookings/my?page=1&limit=20');
     });
   });
 
@@ -146,14 +152,12 @@ describe('bookingAPI', () => {
         { id: 1, user: 'user@example.com', provider: 'John Doe', service: 'Haircut', datetime: '2023-12-01 10:00:00' },
       ];
 
-      mockedAxios.create.mockReturnValue({
-        get: jest.fn().mockResolvedValue({ data: mockBookings }),
-      });
+      mockApiInstance.get.mockResolvedValue({ data: mockBookings });
 
       const result = await bookingAPI.getAllBookings();
 
       expect(result).toEqual(mockBookings);
-      expect(mockedAxios.create().get).toHaveBeenCalledWith('/api/bookings/all');
+      expect(mockApiInstance.get).toHaveBeenCalledWith('/api/bookings/all?page=1&limit=50');
     });
   });
 });
