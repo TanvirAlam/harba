@@ -48,7 +48,7 @@ class RateLimitListener
             }
         }
         
-        // Apply rate limiting to booking endpoint
+        // Apply rate limiting to booking endpoints (create and cancel)
         if ($path === '/api/bookings' && $request->isMethod('POST')) {
             $limiter = $this->bookingLimiter->create($request->getClientIp());
             $limit = $limiter->consume();
@@ -56,6 +56,20 @@ class RateLimitListener
             if (!$limit->isAccepted()) {
                 $event->setResponse(new JsonResponse([
                     'error' => 'Too many booking attempts. Please slow down and try again.',
+                    'retry_after' => $limit->getRetryAfter()->getTimestamp(),
+                ], 429));
+                return;
+            }
+        }
+        
+        // Apply rate limiting to booking cancellation/deletion
+        if (preg_match('#^/api/bookings/(\d+)(/hard-delete)?$#', $path) && $request->isMethod('DELETE')) {
+            $limiter = $this->bookingLimiter->create($request->getClientIp());
+            $limit = $limiter->consume();
+
+            if (!$limit->isAccepted()) {
+                $event->setResponse(new JsonResponse([
+                    'error' => 'Too many booking operations. Please slow down and try again.',
                     'retry_after' => $limit->getRetryAfter()->getTimestamp(),
                 ], 429));
                 return;

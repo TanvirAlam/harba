@@ -37,11 +37,13 @@ A complete full-stack application with Symfony backend API and Next.js frontend,
 
 ## Features
 
-- **Backend**: Symfony 7.3 with JWT authentication, Doctrine ORM, PostgreSQL database
+- **Backend**: Symfony 7.3 with JWT authentication, Doctrine ORM, MySQL database
 - **Frontend**: Next.js with React, TypeScript, and Tailwind CSS
 - **Authentication**: JWT-based API authentication with user registration/login
-- **Database**: PostgreSQL 15 with Doctrine migrations
-- **Containerization**: Docker Compose setup with PHP-FPM, Nginx, PostgreSQL, and Next.js
+- **Database**: MySQL 8.0 with Doctrine migrations
+- **Soft Deletes**: Bookings use soft delete pattern (Gedmo SoftDeleteable)
+- **Rate Limiting**: Applied to authentication and booking endpoints
+- **Containerization**: Docker Compose setup with PHP-FPM, Nginx, MySQL, and Next.js
 
 ## Project Structure
 
@@ -115,14 +117,14 @@ A complete full-stack application with Symfony backend API and Next.js frontend,
 7. **Access the application**
    - **Frontend (Next.js)**: http://localhost:3000
    - **Backend API (Symfony)**: http://localhost:8080
-   - **Database**: localhost:8001 (PostgreSQL)
+   - **Database**: localhost:8001 (MySQL)
 
 ### What to Expect
 
 Once all services are running:
 - **Frontend (localhost:3000)**: Modern React application with booking system
 - **Backend API (localhost:8080)**: REST API with JWT authentication
-- **Database**: PostgreSQL 15 with automatic migrations and seed data
+- **Database**: MySQL 8.0 with automatic migrations and seed data
 
 ### Running Tests
 
@@ -170,7 +172,7 @@ docker compose exec web npm test
 #### Database Operations
 ```bash
 # Access database directly
-docker compose exec db psql -U postgres -d harba
+docker compose exec db mysql -u harba_user -p harba
 
 # Run migrations manually (usually automatic)
 docker compose exec api-php php bin/console doctrine:migrations:migrate
@@ -413,20 +415,29 @@ pnpm dev
 
 ### Database
 
-The application uses PostgreSQL with Doctrine ORM. Migrations are automatically run on container startup.
+The application uses MySQL 8.0 with Doctrine ORM. Migrations are automatically run on container startup.
+
+**Key Features:**
+- Soft deletes for bookings (uses Gedmo Doctrine Extensions)
+- Unique constraint to prevent double-booking
+- JSON column support for provider working hours
 
 ### Environment Variables
 
-Copy `apps/api-php/.env.example` to `apps/api-php/.env` and configure:
+Copy `.env.example` to `.env` in the root directory and configure:
 
-- `DATABASE_URL`: PostgreSQL connection string
+- `MYSQL_DATABASE`: Database name (default: harba)
+- `MYSQL_USER`: Database user (default: harba_user)
+- `MYSQL_PASSWORD`: Database password
+- `MYSQL_ROOT_PASSWORD`: MySQL root password
+- `DATABASE_URL`: MySQL connection string
 - `JWT_SECRET_KEY`: Path to JWT private key
 - `JWT_PUBLIC_KEY`: Path to JWT public key
 - `JWT_PASSPHRASE`: JWT key passphrase
 
 ## Docker Services
 
-- **db**: PostgreSQL 15 database
+- **db**: MySQL 8.0 database
 - **api-php**: PHP 8.4 FPM with Symfony
 - **nginx**: Web server proxying to PHP-FPM
 - **web**: Next.js production build
@@ -546,8 +557,16 @@ curl -X DELETE http://localhost:8080/api/bookings/123 \
 
 ## Technologies Used
 
-- **Backend**: Symfony 7.3, Doctrine ORM, LexikJWTAuthenticationBundle
-- **Frontend**: Next.js 16, React 19, TypeScript, Styled Components
-- **Database**: PostgreSQL 15
+- **Backend**: Symfony 7.3, Doctrine ORM, LexikJWTAuthenticationBundle, Gedmo Doctrine Extensions
+- **Frontend**: Next.js 16, React 19, TypeScript, Tailwind CSS
+- **Database**: MySQL 8.0
 - **Containerization**: Docker, Docker Compose
 - **Web Server**: Nginx
+
+## Key Improvements (from original)
+
+1. **Database Migration**: Switched from PostgreSQL to MySQL 8.0 (case study requirement)
+2. **Service Layer Architecture**: Business logic extracted to dedicated service classes
+3. **Soft Deletes**: Implemented using Gedmo SoftDeleteable for bookings
+4. **Rate Limiting**: Added rate limiting for authentication and booking endpoints
+5. **Comprehensive Validation**: Enhanced input validation and error handling

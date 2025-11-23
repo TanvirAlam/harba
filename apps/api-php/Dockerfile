@@ -10,13 +10,13 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     zip \
     unzip \
-    libpq-dev
+    default-mysql-client
 
 # Clear cache
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
-RUN docker-php-ext-install pdo_pgsql pgsql mbstring exif pcntl bcmath gd zip
+RUN docker-php-ext-install pdo_mysql mysqli mbstring exif pcntl bcmath gd zip
 
 # Install php-fpm-healthcheck for container health monitoring
 RUN curl -o /usr/local/bin/php-fpm-healthcheck https://raw.githubusercontent.com/realgam/php-fpm-healthcheck/master/php-fpm-healthcheck \
