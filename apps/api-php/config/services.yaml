@@ -31,5 +31,6 @@ services:
         arguments:
             $loginLimiter: '@limiter.login'
             $registrationLimiter: '@limiter.registration'
+            $bookingLimiter: '@limiter.booking'
         tags:
             - { name: kernel.event_listener, event: kernel.request, priority: 10 }
