@@ -94,7 +94,7 @@ class DatabaseExceptionTest extends WebTestCase
         // Create provider and service
         $provider = new Provider();
         $provider->setName('Test Provider');
-        $provider->setWorkingHours(['Monday' => '09:00-17:00']);
+        $provider->setWorkingHours(['monday' => '09:00-17:00']);
         $this->entityManager->persist($provider);
 
         $service = new Service();

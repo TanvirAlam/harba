@@ -1,0 +1,14 @@
+framework:
+    rate_limiter:
+        # Disable rate limiting in test environment
+        login:
+            policy: 'no_limit'
+            
+        registration:
+            policy: 'no_limit'
+            
+        api:
+            policy: 'no_limit'
+            
+        booking:
+            policy: 'no_limit'

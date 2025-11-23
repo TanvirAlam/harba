@@ -1,0 +1,3 @@
+services:
+    # Disable rate limiting in test environment
+    App\EventListener\RateLimitListener: ~
